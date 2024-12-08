@@ -1,0 +1,12 @@
+{
+  "Lua.diagnostics.globals": [
+    "script",
+    "task",
+    "tick",
+    "Instance",
+    "game"
+  ],
+  "Lua.diagnostics.disable": [
+    "undefined-field"
+  ]
+}
