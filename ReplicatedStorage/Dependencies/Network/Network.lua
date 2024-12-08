@@ -10,16 +10,17 @@ local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local Path__Dependencies = ReplicatedStorage.Dependencies
 
 -- enums
-local Path__LocalEnums = script.Enums
-local Path__GlobalEnums = ReplicatedStorage.Enums
-local Path__EventSignalEnums = Path__Dependencies.EventSignal.Enums
+local LocalEnums = require(script.Enums)
+local GlobalEnums = require(Path__Dependencies.Enums)
 
-local ReplicationType = require(Path__LocalEnums.ReplicationType)
-local EventValidationStatus = require(Path__EventSignalEnums.EventValidationStatus)
-local MachineType = require(Path__GlobalEnums.MachineType)
+local EventSignalEnums = require(Path__Dependencies.EventSignal.Enums)
 
-local NetworkRequest = require(Path__LocalEnums.NetworkRequest)
-local NetworkType = require(Path__LocalEnums.NetworkType)
+local ReplicationType = LocalEnums.ReplicationType
+local EventValidationStatus = EventSignalEnums.EventValidationStatus
+local MachineType = GlobalEnums.MachineType
+
+local NetworkRequest = LocalEnums.NetworkRequest
+local NetworkType = LocalEnums.NetworkType
 
 -- dependencies
 local System = require(Path__Dependencies.System)
@@ -39,23 +40,23 @@ local Network = {}
 ]]
 local SignalDispatchAliases = {
 	RemoteFunction = {
-		[MachineType.Server] = 'InvokeClient',
-		[MachineType.Client] = 'InvokeServer',
+		[MachineType.Server:getValue()] = 'InvokeClient',
+		[MachineType.Client:getValue()] = 'InvokeServer',
 	},
 	
 	RemoteEvent = {
-		[MachineType.Server] = 'FireClient',
-		[MachineType.Client] = 'FireServer',
+		[MachineType.Server:getValue()] = 'FireClient',
+		[MachineType.Client:getValue()] = 'FireServer',
 	},
 	
 	BindableFunction = {
-		[MachineType.Server] = 'Invoke',
-		[MachineType.Client] = 'Invoke',
+		[MachineType.Server:getValue()] = 'Invoke',
+		[MachineType.Client:getValue()] = 'Invoke',
 	},
 	
 	BindableEvent = {
-		[MachineType.Server] = 'Fire',
-		[MachineType.Client] = 'Fire'
+		[MachineType.Server:getValue()] = 'Fire',
+		[MachineType.Client:getValue()] = 'Fire'
 	}
 }
 
@@ -86,7 +87,7 @@ local function handleRemoteRequest(remoteType, remoteSignalAlias)
 		remoteData.event:fire(request, ...)
 
 		-- fire the actual remote object
-		return remoteData.remote[remoteSignalAlias[System.MachineType]](remoteData.remote, request, ...)
+		return remoteData.remote[remoteSignalAlias[System.MachineType:getValue()]](remoteData.remote, request, ...)
 	end
 end
 
@@ -97,12 +98,11 @@ end
 	@param: ... (any)
 ]]
 function Network:fire(signalName, request, ...)
-	return handleRemoteRequest(Remotes:get(NetworkType.Send), SignalDispatchAliases.RemoteEvent)(signalName, request, ...)
+	return handleRemoteRequest(Remotes[NetworkType.Send:getEnumName()], SignalDispatchAliases.RemoteEvent)(signalName, request, ...)
 end
 
 function Network:fireAll(signalName, request, ...)
-	local remoteData = Remotes:get(NetworkType.Send)[signalName]
-	print(signalName, Remotes:get(NetworkType.Send))
+	local remoteData = Remotes[NetworkType.Send:getEnumName()][signalName]
 	
 	if (System.isClient()) then
 		System.error('fireAll cannot be called from client')
@@ -111,7 +111,7 @@ function Network:fireAll(signalName, request, ...)
 	
 	local remoteValidation = remoteData.event:getValidationReport()
 	
-	if (remoteValidation.result == EventValidationStatus.Rejected) then
+	if (remoteValidation.result == EventValidationStatus.Rejected:getEnumName()) then
 		return 
 	end
 	
@@ -120,17 +120,17 @@ function Network:fireAll(signalName, request, ...)
 end
 
 function Network:invoke(signalName, request, ...)
-	return handleRemoteRequest(Remotes:get(NetworkType.Receive), SignalDispatchAliases.RemoteFunction)(signalName, request, ...)
+	return handleRemoteRequest(Remotes[NetworkType.Receive:getEnumName()], SignalDispatchAliases.RemoteFunction)(signalName, request, ...)
 end
 
 -- for executing BindableFunctions
 function Network:run(signalName, request, ...)
-	return handleRemoteRequest(Remotes:get(NetworkType.Functions), SignalDispatchAliases.BindableFunction)(signalName, request, ...)
+	return handleRemoteRequest(Remotes[NetworkType.Functions:getEnumName()], SignalDispatchAliases.BindableFunction)(signalName, request, ...)
 end
 
 -- for executing BindableEvents
 function Network:dispatch(signalName, request, ...)
-	return handleRemoteRequest(Remotes:get(NetworkType.Events), SignalDispatchAliases.BindableEvent)(signalName, request, ...)
+	return handleRemoteRequest(Remotes[NetworkType.Events:getEnumName()], SignalDispatchAliases.BindableEvent)(signalName, request, ...)
 end
 
 --[[

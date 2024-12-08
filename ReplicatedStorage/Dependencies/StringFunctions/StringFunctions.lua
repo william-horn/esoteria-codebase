@@ -6,17 +6,13 @@
 
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
-local Path__LocalEnums = script.Enums
+local LocalEnums = require(script.Enums)
 local Path__Dependencies = ReplicatedStorage.Dependencies
 local Path__SubstitutionOptions = script.SubstitutionOptions
 
-local Enumify = require(Path__Dependencies.Enumify)
-
 local StringFunctions = {}
 
-local StringMath = Enumify({ 
-	StringMath = require(Path__LocalEnums.StringMath) 
-})
+local StringMath = LocalEnums.StringMath
 
 --[[
 	@desc: Escapes a string by replacing all chars with their byte value
@@ -148,11 +144,11 @@ function StringFunctions:replaceWithCombinedOperationResult(str, ops)
 	local OperationType = StringMath.OperationType
 	local opString
 
-	if (ops == OperationType.Exponent) then
+	if (ops == OperationType.Exponent:getEnumName()) then
 		opString = '^'
-	elseif (ops == OperationType.Multiplication or ops == OperationType.Division) then
+	elseif (ops == OperationType.Multiplication:getEnumName() or ops == OperationType.Division:getEnumName()) then
 		opString = '*/'
-	elseif (ops == OperationType.Addition or ops == OperationType.Subtraction) then
+	elseif (ops == OperationType.Addition:getEnumName() or ops == OperationType.Subtraction:getEnumName()) then
 		opString = '+-'
 	else
 		error('OperationType is not recognized')
@@ -213,9 +209,9 @@ function StringFunctions:getResultFromMathExpression(expression)
 			return evaluate(result)
 		else
 			-- Compute the expression following the order of operations
-			local combinedExponent = self:replaceWithCombinedOperationResult(result, OperationType.Exponent)
-			local combinedMult = self:replaceWithCombinedOperationResult(combinedExponent, OperationType.Multiplication)
-			local combinedAdd = self:replaceWithCombinedOperationResult(combinedMult, OperationType.Addition)
+			local combinedExponent = self:replaceWithCombinedOperationResult(result, OperationType.Exponent:getEnumName())
+			local combinedMult = self:replaceWithCombinedOperationResult(combinedExponent, OperationType.Multiplication:getEnumName())
+			local combinedAdd = self:replaceWithCombinedOperationResult(combinedMult, OperationType.Addition:getEnumName())
 
 			return combinedAdd
 		end

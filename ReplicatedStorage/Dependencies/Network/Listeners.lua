@@ -147,9 +147,9 @@ for _, remoteType in next, Path__Network:GetChildren() do
 
 	-- create the initial path for 'Send' and 'Receive' remotes
 	System.print("remote name: ", remoteType.Name)
-	System.print("Network type: ", NetworkType[remoteType.Name])
+	System.print("Network type: ", NetworkType[remoteType.Name]:getEnumName())
 	
-	Remotes[NetworkType[remoteType.Name]] = remotes
+	Remotes[NetworkType[remoteType.Name]:getEnumName()] = remotes
 
 	-- scan over all remote folders inside network type
 	local signals = remoteType:GetChildren()
@@ -168,8 +168,8 @@ for _, remoteType in next, Path__Network:GetChildren() do
 		local requestTypes = getNetworkRequestTypesFromFolder(signalFolder)
 
 		-- get the global and local remote settings (if any)
-		local remoteGlobalSettings = signalFolder:FindFirstChild('_Settings')
-		local remoteLocalSettings = (systemFolder and systemFolder:FindFirstChild('_Settings')) or nil
+		local remoteGlobalSettings = signalFolder:FindFirstChild('_settings')
+		local remoteLocalSettings = (systemFolder and systemFolder:FindFirstChild('_settings')) or nil
 
 		-- if both global and local settings exist, combine them
 		-- else if none exist, default to empty table {}
@@ -189,8 +189,8 @@ for _, remoteType in next, Path__Network:GetChildren() do
 		-- update the enum tables with the remote data
 		-- NOTE: these objects will be converted into Enum objects later on
 		-- their purpose is just to provide the structure for doing so
-		networkType[tostring(NetworkType[remoteName])] = remoteName
-		requestType[tostring(NetworkRequest[remoteName])] = Table:arrayToDict(requestTypes)
+		networkType[NetworkType[remoteName]:getEnumName()] = remoteName
+		requestType[NetworkRequest[remoteName]:getEnumName()] = Table:arrayToDict(requestTypes)
 
 		-- update the remote data table
 		-- this stores all relevant info about the remote
@@ -207,7 +207,6 @@ for _, remoteType in next, Path__Network:GetChildren() do
 end
 
 -- create the network enums based on the enum structure tables NetworkTypeEnum and NetworkRequestEnum
-System.print(Remotes)
 
 --[[
 	@desc: General handler function for handling incoming remote signals.
@@ -237,20 +236,20 @@ end
 
 function Listeners:listen()
 	-- connect remote functions
-	for _, remoteData in next, Remotes:get(NetworkType.Receive) do
+	for _, remoteData in next, Remotes[NetworkType.Receive:getEnumName()] do
 		remoteData.remote[remoteFunctionConnectionType] = handleRequest(getRequiredHandlerModules(remoteData.handlers))
 	end
 	
 	-- connect remote events
-	for _, remoteData in next, Remotes:get(NetworkType.Send) do
+	for _, remoteData in next, Remotes[NetworkType.Send:getEnumName()] do
 		remoteData.remote[remoteEventConnectionType]:Connect(handleRequest(getRequiredHandlerModules(remoteData.handlers)))
 	end
 	
-	for _, remoteData in next, Remotes:get(NetworkType.Functions) do
+	for _, remoteData in next, Remotes[NetworkType.Functions:getEnumName()] do
 		remoteData.remote[bindableFunctionConnectionType] = handleRequest(getRequiredHandlerModules(remoteData.handlers))
 	end
 	
-	for _, remoteData in next, Remotes:get(NetworkType.Events) do
+	for _, remoteData in next, Remotes[NetworkType.Events:getEnumName()] do
 		remoteData.remote[bindableEventConnectionType]:Connect(handleRequest(getRequiredHandlerModules(remoteData.handlers)))
 	end
 	
