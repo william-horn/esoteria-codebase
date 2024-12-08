@@ -124,13 +124,13 @@ function Dispatcher:execute(payload__local, settings__localEvent, eventValidatio
 	analytics.dispatches.current += 1
 
 	-- fire end of dispatch callbacks. these will run before the dispatch handlers
-	if eventValidationReport.result == EventValidationStatus.Successful:getEnumName() then
+	if eventValidationReport.result == EventValidationStatus.Successful then
 		event:executeDispatchSuccess(eventValidationReport.reasons, event)
 		analytics.dispatches.successful += 1
 		
 		executeEvent()
 
-	elseif eventValidationReport.result == EventValidationStatus.Rejected:getEnumName() then
+	elseif eventValidationReport.result == EventValidationStatus.Rejected then
 		event:executeDispatchFailed(eventValidationReport.reasons, event)
 	end
 	

@@ -1,4 +1,10 @@
 
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local Path__Dependencies = ReplicatedStorage.Dependencies
+
+local Package__Enumify = require(Path__Dependencies.Enumify)
+local Enumify = Package__Enumify.Enumify
+
 local LocalEnums = require(script.Parent.Enums)
 
 local EventValidationStatus = LocalEnums.EventValidationStatus
@@ -28,8 +34,8 @@ end
 function EventValidationReport.new(result)
 	local evr = setmetatable({}, EventValidationReport)
 	
-	evr.result = result or EventValidationStatus.Rejected:getEnumName()
-	evr.reasons = {} 
+	evr.result = result or EventValidationStatus.Rejected
+	evr.reasons = Enumify:createEnumTable()
 
 	return evr
 end

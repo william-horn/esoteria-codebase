@@ -6,16 +6,6 @@ local String = Package__StringFunctions.StringFunctions
 
 local TableFunctions = {}
 
-function TableFunctions:shallowCopy(t)
-	local copy = {}
-	
-	for k, v in next, t do
-		copy[k] = v
-	end
-	
-	return copy
-end
-
 --[[
 	@desc: Returns an array of all keys in a table
 	@args: <table> dict
@@ -264,6 +254,22 @@ function TableFunctions:toString(t, indent)
 	-- Add closing curly brace with proper indentation and return the formatted string
 	formattedString = formattedString .. string.rep("\t", indent - 1) .. "}"
 	return formattedString
+end
+
+function TableFunctions:traverse(t, callback)
+  local queue = {t}
+
+  while (#queue > 0) do
+    local dir = table.remove(queue, 1)
+
+    for itemKey, itemVal in next, dir do
+      if (type(itemVal) == "table") then
+        queue[#queue + 1] = itemVal
+      end
+
+      callback(dir, itemKey, itemVal)
+    end
+  end
 end
 
 return TableFunctions

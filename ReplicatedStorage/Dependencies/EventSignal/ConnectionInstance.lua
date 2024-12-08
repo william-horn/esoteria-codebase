@@ -26,7 +26,7 @@ function Connection.new(options)
 	connection.connection = connection
 	connection.active = true
 	
-	connection._customType = CustomEventType.ConnectionInstance:getEnumName()
+	connection._customType = CustomEventType.ConnectionInstance
 	
 	return connection
 end

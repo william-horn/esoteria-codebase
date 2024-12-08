@@ -4,7 +4,8 @@ local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
 local Path__Dependencies = ReplicatedStorage.Dependencies
 
-local MachineType = require(Path__Dependencies.Enums).MachineType
+local GlobalEnums = require(Path__Dependencies.Enums)
+local MachineType = GlobalEnums.MachineType
 
 local Math = require(Path__Dependencies.MathFunctions)
 
@@ -16,11 +17,11 @@ System.isServer = function() return RunService:IsServer() end
 System.isStudio = function() return RunService:IsStudio() end
 
 if (System.isClient()) then
-	System.MachineType = MachineType.Client:getEnumName()
+	System.MachineType = MachineType.Client
 elseif (System.isServer()) then
-	System.MachineType = MachineType.Server:getEnumName()
+	System.MachineType = MachineType.Server
 else
-	System.MachineType = MachineType.Studio:getEnumName()
+	System.MachineType = MachineType.Studio
 end
 
 local prefix = 

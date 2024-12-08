@@ -7,8 +7,6 @@ local ReplicationStorage = game:GetService('ReplicatedStorage')
 -- paths
 local Path__Dependencies = ReplicationStorage.Dependencies
 local Path__Network = ReplicationStorage.Network
--- local Path__NetworkSend = Path__Network.Send
--- local Path__NetworkReceive = Path__Network.Receive
 
 -- enums
 local LocalEnums = require(script.Parent.Enums)
@@ -21,6 +19,9 @@ local NetworkRequest = LocalEnums.NetworkRequest
 local System = require(Path__Dependencies.System)
 local Table = require(Path__Dependencies.TableFunctions)
 
+local Package__Enumify = require(Path__Dependencies.Enumify)
+local Enumify = Package__Enumify.Enumify
+
 local Package__Event = require(Path__Dependencies.EventSignal)
 local Event = Package__Event.Event
 
@@ -30,43 +31,43 @@ local Event = Package__Event.Event
 local Listeners = {}
 
 -- all relevant remote data
-local Remotes = {}
+local Remotes = Enumify:createEnumTable()
 --[[
 	Map MachineType enum to remote event listener types
 ]]
-local ConnectionAliases = {
+local ConnectionAliases = Enumify:createEnumTable({
 	RemoteFunction = {
-		[MachineType.Server:getBaseName()] = 'OnServerInvoke',
-		[MachineType.Client:getBaseName()] = 'OnClientInvoke'
+		[MachineType.Server] = 'OnServerInvoke',
+		[MachineType.Client] = 'OnClientInvoke'
 	},
 	
 	RemoteEvent = {
-		[MachineType.Server:getBaseName()] = 'OnServerEvent',
-		[MachineType.Client:getBaseName()] = 'OnClientEvent'
+		[MachineType.Server] = 'OnServerEvent',
+		[MachineType.Client] = 'OnClientEvent'
 	},
 	
 	BindableFunction = {
-		[MachineType.Server:getBaseName()] = 'OnInvoke',
-		[MachineType.Client:getBaseName()] = 'OnInvoke'
+		[MachineType.Server] = 'OnInvoke',
+		[MachineType.Client] = 'OnInvoke'
 	},
 	
 	BindableEvent = {
-		[MachineType.Server:getBaseName()] = 'Event',
-		[MachineType.Client:getBaseName()] = 'Event'
+		[MachineType.Server] = 'Event',
+		[MachineType.Client] = 'Event'
 	}
-}
+})
 
-local SystemFolderAliases = {
-	[MachineType.Server:getBaseName()] = 'Server',
-	[MachineType.Client:getBaseName()] = 'Client'
-}
+local SystemFolderAliases = Enumify:createEnumTable({
+	[MachineType.Server] = 'Server',
+	[MachineType.Client] = 'Client'
+})
 
 -- get the remote listener type for the current system
-local remoteFunctionConnectionType = ConnectionAliases.RemoteFunction[System.MachineType:getBaseName()]
-local remoteEventConnectionType = ConnectionAliases.RemoteEvent[System.MachineType:getBaseName()]
+local remoteFunctionConnectionType = ConnectionAliases.RemoteFunction[System.MachineType]
+local remoteEventConnectionType = ConnectionAliases.RemoteEvent[System.MachineType]
 
-local bindableFunctionConnectionType = ConnectionAliases.BindableFunction[System.MachineType:getBaseName()]
-local bindableEventConnectionType = ConnectionAliases.BindableEvent[System.MachineType:getBaseName()]
+local bindableFunctionConnectionType = ConnectionAliases.BindableFunction[System.MachineType]
+local bindableEventConnectionType = ConnectionAliases.BindableEvent[System.MachineType]
 
 --[[
 	@desc: Check if a handler module is valid
@@ -109,8 +110,8 @@ local function getNetworkRequestTypesFromFolder(folder)
 	for _, child in next, folder:GetChildren() do
 		-- check if folder is the Server or Client folder
 		if (
-			child:IsA('Folder') and (child.Name == SystemFolderAliases[MachineType.Client:getBaseName()] 
-				or child.Name == SystemFolderAliases[MachineType.Server:getBaseName()])
+			child:IsA('Folder') and (child.Name == SystemFolderAliases[MachineType.Client] 
+				or child.Name == SystemFolderAliases[MachineType.Server])
 		) then
 			
 			-- store the request type names 
@@ -141,15 +142,10 @@ end
 	Begin scanning the network folder for all network signals and network request handlers
 ]]
 for _, remoteType in next, Path__Network:GetChildren() do
-	local networkType = {}
-	local requestType = {}
 	local remotes = {}
 
 	-- create the initial path for 'Send' and 'Receive' remotes
-	System.print("remote name: ", remoteType.Name)
-	System.print("Network type: ", NetworkType[remoteType.Name]:getEnumName())
-	
-	Remotes[NetworkType[remoteType.Name]:getEnumName()] = remotes
+	Remotes[NetworkType[remoteType.Name]] = remotes
 
 	-- scan over all remote folders inside network type
 	local signals = remoteType:GetChildren()
@@ -158,7 +154,7 @@ for _, remoteType in next, Path__Network:GetChildren() do
 		local remoteName = signalFolder.Name
 		local remote = signalFolder:WaitForChild('Remote')
 
-		local systemFolder = signalFolder:FindFirstChild(SystemFolderAliases[System.MachineType:getBaseName()])
+		local systemFolder = signalFolder:FindFirstChild(SystemFolderAliases[System.MachineType])
 
 		if (not systemFolder) then
 			System.warn('No handlers for ['..remoteName..'] on this system')
@@ -186,15 +182,9 @@ for _, remoteType in next, Path__Network:GetChildren() do
 			end
 		end
 
-		-- update the enum tables with the remote data
-		-- NOTE: these objects will be converted into Enum objects later on
-		-- their purpose is just to provide the structure for doing so
-		networkType[NetworkType[remoteName]:getEnumName()] = remoteName
-		requestType[NetworkRequest[remoteName]:getEnumName()] = Table:arrayToDict(requestTypes)
-
 		-- update the remote data table
 		-- this stores all relevant info about the remote
-		remotes[remoteName] = {
+		remotes[NetworkType[remoteType.Name][remoteName]] = {
 			remote = remote,
 			handlers = handlerModules,
 			requestTypes = requestTypes,
@@ -236,20 +226,20 @@ end
 
 function Listeners:listen()
 	-- connect remote functions
-	for _, remoteData in next, Remotes[NetworkType.Receive:getEnumName()] do
+	for _, remoteData in next, Remotes[NetworkType.Receive] do
 		remoteData.remote[remoteFunctionConnectionType] = handleRequest(getRequiredHandlerModules(remoteData.handlers))
 	end
 	
 	-- connect remote events
-	for _, remoteData in next, Remotes[NetworkType.Send:getEnumName()] do
+	for _, remoteData in next, Remotes[NetworkType.Send] do
 		remoteData.remote[remoteEventConnectionType]:Connect(handleRequest(getRequiredHandlerModules(remoteData.handlers)))
 	end
 	
-	for _, remoteData in next, Remotes[NetworkType.Functions:getEnumName()] do
+	for _, remoteData in next, Remotes[NetworkType.Functions] do
 		remoteData.remote[bindableFunctionConnectionType] = handleRequest(getRequiredHandlerModules(remoteData.handlers))
 	end
 	
-	for _, remoteData in next, Remotes[NetworkType.Events:getEnumName()] do
+	for _, remoteData in next, Remotes[NetworkType.Events] do
 		remoteData.remote[bindableEventConnectionType]:Connect(handleRequest(getRequiredHandlerModules(remoteData.handlers)))
 	end
 	

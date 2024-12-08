@@ -22,7 +22,6 @@
 --- Imports ---
 ---------------
 local Path__Dependencies = script.Parent
-local Path__LocalEnums = script.Enums
 
 -- External imports
 local uuid = require(Path__Dependencies.UUID)
@@ -114,45 +113,45 @@ function Event:getValidationReport(headers)
 	local settings = headers or self.settings
 	local analytics = self.analytics
 
-	local report = EventValidationReport.new(EventValidationStatus.Rejected:getEnumName())
+	local report = EventValidationReport.new(EventValidationStatus.Rejected)
 
 	-- special case event overrides
 	if (settings.withValidation == false) then
-		report:addReason(DispatchStatusType.DispatchOverride:getEnumName())
+		report:addReason(DispatchStatusType.DispatchOverride)
 	end
 
 	if (#report.reasons > 0) then
-		report:setResult(EventValidationStatus.Successful:getEnumName())
+		report:setResult(EventValidationStatus.Successful)
 		return report
 	end
 	
 	if (settings.throwRejection) then
 		report:addReason(settings.throwRejection)
-		report:setResult(EventValidationStatus.Rejected:getEnumName())
+		report:setResult(EventValidationStatus.Rejected)
 		return report
 	end
 	
 	if (self.settings.dispatchQueueEnabled and not self._hasBeenConnectedBefore) then
-		report:addReason(DispatchStatusType.DispatchQueued:getEnumName())
+		report:addReason(DispatchStatusType.DispatchQueued)
 	end
 
 	-- event dispatch validation
 	if (self:isDisabled()) then
-		report:addReason(DispatchStatusType.Disabled:getEnumName())
+		report:addReason(DispatchStatusType.Disabled)
 	end
 
 	if #self._connections == 0 and settings.requiresConnection then
-		report:addReason(DispatchStatusType.NoConnection:getEnumName())
+		report:addReason(DispatchStatusType.NoConnection)
 	end
 
 	if (analytics.dispatches.successful >= settings.dispatchLimit) then
-		report:addReason(DispatchStatusType.DispatchLimitReached:getEnumName())
+		report:addReason(DispatchStatusType.DispatchLimitReached)
 	end
 
 	-- update final dispatch report
 	if (#report.reasons == 0) then
-		report:addReason(DispatchStatusType.Successful:getEnumName())
-		report:setResult(EventValidationStatus.Successful:getEnumName())
+		report:addReason(DispatchStatusType.Successful)
+		report:setResult(EventValidationStatus.Successful)
 	end
 
 	return report
@@ -317,7 +316,7 @@ end
 
 function Event:isActive()
 	local report = self:getValidationReport()
-	return report.result == EventValidationStatus.Successful:getEnumName()
+	return report.result == EventValidationStatus.Successful
 end
 
 function Event:disable()
@@ -379,11 +378,11 @@ function Event.new(options)
 
 	event._childEvents = childEvents
 	event._id = uuid()
-	event._customType = CustomEventType.EventInstance:getEnumName()
+	event._customType = CustomEventType.EventInstance
 	event._propagating = false
 	event._hasBeenConnectedBefore = false
-	event._prevState = EventStateType.Listening:getEnumName()
-	event._state = EventStateType.Listening:getEnumName()
+	event._prevState = EventStateType.Listening
+	event._state = EventStateType.Listening
 	event._connections = {}
 	event._rbxYieldSignal = Instance.new("BindableEvent")
 	event._yieldTasks = {}

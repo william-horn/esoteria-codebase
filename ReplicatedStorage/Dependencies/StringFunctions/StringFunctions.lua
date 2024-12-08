@@ -8,11 +8,53 @@ local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
 local LocalEnums = require(script.Enums)
 local Path__Dependencies = ReplicatedStorage.Dependencies
-local Path__SubstitutionOptions = script.SubstitutionOptions
+
+-- local Table = require(Path__Dependencies.TableFunctions)
 
 local StringFunctions = {}
 
 local StringMath = LocalEnums.StringMath
+
+function StringFunctions:getSubstitutionDefaults()
+  local subDefaults = self._substitutionDefaults
+
+  if (not subDefaults) then
+    subDefaults = {
+      vars = {
+        pi = math.pi,
+        tau = math.pi*2,
+      },
+
+      functions = {
+        eval = function(exp)
+          return self:getResultFromMathExpression(exp)
+        end,
+        floor = function(n)
+          return math.floor(self:getResultFromMathExpression(n))
+        end,
+        ceil = function(n)
+          return math.ceil(self:getResultFromMathExpression(n))
+        end,
+        min = function(a, b)
+          return math.min(
+            self:getResultFromMathExpression(a),
+            self:getResultFromMathExpression(b)
+          )
+        end,
+        max = function(a, b)
+          return math.max(
+            self:getResultFromMathExpression(a),
+            self:getResultFromMathExpression(b)
+          )
+        end,
+      }
+    }
+
+    self._substitutionDefaults = subDefaults
+  end
+
+  return subDefaults
+end
 
 --[[
 	@desc: Escapes a string by replacing all chars with their byte value
@@ -144,11 +186,11 @@ function StringFunctions:replaceWithCombinedOperationResult(str, ops)
 	local OperationType = StringMath.OperationType
 	local opString
 
-	if (ops == OperationType.Exponent:getEnumName()) then
+	if (ops == OperationType.Exponent) then
 		opString = '^'
-	elseif (ops == OperationType.Multiplication:getEnumName() or ops == OperationType.Division:getEnumName()) then
+	elseif (ops == OperationType.Multiplication or ops == OperationType.Division) then
 		opString = '*/'
-	elseif (ops == OperationType.Addition:getEnumName() or ops == OperationType.Subtraction:getEnumName()) then
+	elseif (ops == OperationType.Addition or ops == OperationType.Subtraction) then
 		opString = '+-'
 	else
 		error('OperationType is not recognized')
@@ -209,9 +251,9 @@ function StringFunctions:getResultFromMathExpression(expression)
 			return evaluate(result)
 		else
 			-- Compute the expression following the order of operations
-			local combinedExponent = self:replaceWithCombinedOperationResult(result, OperationType.Exponent:getEnumName())
-			local combinedMult = self:replaceWithCombinedOperationResult(combinedExponent, OperationType.Multiplication:getEnumName())
-			local combinedAdd = self:replaceWithCombinedOperationResult(combinedMult, OperationType.Addition:getEnumName())
+			local combinedExponent = self:replaceWithCombinedOperationResult(result, OperationType.Exponent)
+			local combinedMult = self:replaceWithCombinedOperationResult(combinedExponent, OperationType.Multiplication)
+			local combinedAdd = self:replaceWithCombinedOperationResult(combinedMult, OperationType.Addition)
 
 			return combinedAdd
 		end
@@ -245,12 +287,11 @@ end
 		> Hello Bob, how are you today?
 ]]
 function StringFunctions:substitute(str, options)
-	local globalOptions = self._substitutionOptions or require(Path__SubstitutionOptions.Default) or {}
-	
+  local SubstitutionDefaults = self:getSubstitutionDefaults()
 	if (options) then
 		options = table.clone(options)
 		
-		for opKey, opVal in pairs({ vars = globalOptions.vars, functions = globalOptions.functions }) do
+		for opKey, opVal in pairs({ vars = SubstitutionDefaults.vars, functions = SubstitutionDefaults.functions }) do
 			if (not options[opKey]) then
 				options[opKey] = opVal
 			else
@@ -262,7 +303,7 @@ function StringFunctions:substitute(str, options)
 			end
 		end
 	else
-		options = globalOptions
+		options = SubstitutionDefaults
 	end
 	
 	local vars = options.vars or {}
@@ -287,48 +328,6 @@ function StringFunctions:substitute(str, options)
 	end
 
 	return ({ self:unescapeChars(replaceStr(varStr)) })[1]
-end
-
---[[
-	@desc: Sets the global variables and functions for the substitution function to use based on a preset
-	@params: <string> option name
-	@returns: <table> StringFunctions
-]]
-function StringFunctions:selectSubstitutionOptions(optionName)
-	local options = require(Path__SubstitutionOptions[optionName])
-	
-	if (options) then
-		self._substitutionOptions = options
-	else
-		error('No such option preset exists')
-	end
-	
-	return self
-end
-
---[[
-	@desc: Updates the global variables and functions for the substitution function to use
-	@params: <table> options
-	@returns: <table> StringFunctions
-]]
-function StringFunctions:updateSubstitutionOptions(options)
-	for opKey, opValue in pairs({vars = options.vars, functions = options.functions}) do
-		for key, val in pairs(opValue) do
-			self._substitutionOptions[opKey][key] = val
-		end
-	end
-	
-	return self
-end
-
---[[
-	@desc: Sets the global variables and functions for the substitution function to use
-	@params: <table> options
-	@returns: <table> StringFunctions
-]]
-function StringFunctions:setSubstitutionOptions(options)
-	self._substitutionOptions = options;
-	return self
 end
 
 --[[

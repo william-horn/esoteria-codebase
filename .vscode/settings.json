@@ -4,7 +4,8 @@
     "task",
     "tick",
     "Instance",
-    "game"
+    "game",
+    "Vector3"
   ],
   "Lua.diagnostics.disable": [
     "undefined-field",

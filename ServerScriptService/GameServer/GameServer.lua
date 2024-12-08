@@ -2,7 +2,7 @@
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 
 local Path__Dependencies = ReplicatedStorage.Dependencies
-local GlobalEnums = require(ReplicatedStorage.Enums)
+local GlobalEnums = require(Path__Dependencies.Enums)
 
 local Package__Network = require(Path__Dependencies.Network)
 local Network = Package__Network.Network:listen()

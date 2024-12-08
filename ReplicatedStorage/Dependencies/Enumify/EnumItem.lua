@@ -36,10 +36,13 @@ function EnumItem.new(name, path, value)
 	enumItem._value = value
 	enumItem._baseName = name
 	enumItem._enumName = "Enum" .. path
+  enumItem._customType = "EnumItem"
 
 	return setmetatable({}, {
 		__index = setmetatable(enumItem, EnumItem),
-		__tostring = function() return name end
+		__tostring = function(self) 
+      return self:getEnumName() 
+    end
 	})
 end
 

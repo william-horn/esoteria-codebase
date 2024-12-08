@@ -1,7 +1,6 @@
 
-local Package__StringFunctions = require(script.Parent.Parent)
+local Package__StringFunctions = require(script.Parent)
 local String = Package__StringFunctions.StringFunctions
-local StringMath = Package__StringFunctions.StringMath
 
 return {
 	vars = {
