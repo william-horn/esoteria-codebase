@@ -6,4 +6,4 @@ PackageManager.require(script.Main)
 local fin = os.clock()
 
 print("server fin: ", fin - start)
-print("import calls: ", PackageManager.getImportCalls())
+print("import calls: ", PackageManager._importCalls)

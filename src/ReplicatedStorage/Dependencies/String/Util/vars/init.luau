@@ -1,7 +1,7 @@
 
-return function()
-	local substitutionDefaults = require(script.defaults)()
-  local splitWith = require(script.Parent.splitWith)()
+return function(import, pm)
+  local substitutionDefaults = pm.from(script).import("defaults*")
+  local splitWith = import("@String/@Util/splitWith")
 	
 	--[[
 		@desc: Substitutes variables and functions in a string

@@ -19,7 +19,6 @@ local Path__Dependencies = ReplicatedStorage:WaitForChild("Dependencies")
 local Path__UtilPackage = Path__Dependencies.Util
 
 -- dependencies
--- //luau-ignore
 local isString = require(Path__UtilPackage.Types.isString)()
 local isTable = require(Path__UtilPackage.Types.isTable)()
 local isInstance = require(Path__Dependencies.Util.Types.isInstance)()
@@ -153,7 +152,7 @@ local function getPathResult(dir, pathname)
 		local segmentType = interpretPathSegment(segment)
 		
 		-- is escaping require by using "@"
-		if (requireIsEscaped) then
+		if (requireIsEscaped and child) then
 			dir = child
 			continue
 		end
@@ -248,7 +247,13 @@ end
 
 function PackageManager.from(path)
 	local o = {}
-	local root = getLocation(PackageManager._rootDirectory, path)
+  local root
+
+  if (not isInstance(path)) then
+	  root = getLocation(PackageManager._rootDirectory, path)
+  else
+    root = path
+  end
 	
 	o.location = root
 	

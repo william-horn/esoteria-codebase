@@ -2,7 +2,7 @@
 return function()
 	local StringMath = require(script.Parent.Parent.Enums.StringMath)
 	local removeWhitespace = require(script.Parent.removeWhitespace)()
-	local calcOperationType = require(script.Parent.calcOperationType)()
+	local calcOperationGroup = require(script.Parent.calcOperationGroup)()
 	
 	--[[
 		@desc: Takes a math expression and returns the numeric result
@@ -26,9 +26,9 @@ return function()
 				return evaluate(result)
 			else
 				-- Compute the expression following the order of operations
-				local combinedExponent = calcOperationType(result, OperationType.Exponent)
-				local combinedMult = calcOperationType(combinedExponent, OperationType.Multiplication)
-				local combinedAdd = calcOperationType(combinedMult, OperationType.Addition)
+				local combinedExponent = calcOperationGroup(result, OperationType.Exponent)
+				local combinedMult = calcOperationGroup(combinedExponent, OperationType.Multiplication)
+				local combinedAdd = calcOperationGroup(combinedMult, OperationType.Addition)
 
 				return combinedAdd
 			end

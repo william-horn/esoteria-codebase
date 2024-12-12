@@ -1,6 +1,6 @@
 
-return function()
-	local getResultFromMathExpression = require(script.Parent.getResultFromMathExpression)()
+return function(import)
+	local getResultFromMathExpression = import("@String/@Util/calcMathExpression")
 	
 	return {
 		vars = {
