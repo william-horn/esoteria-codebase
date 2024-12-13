@@ -5,20 +5,25 @@ return function(import, pm)
 
 	local StringTest = TestMaker.new("String Util Test")
 
-	local f = function() import("@Dev/TestMaker"); return true end
+	local x = {}
+
+	local function thing(a)
+		table.insert(x, a)
+		return x
+	end
 
 	StringTest:add({
-		try = f,
-		name = "isString",
+		try = thing,
+		name = "thing",
 		class = {},
-		tests = {
-			{attempt = "Test 1", args = {""}, expect = {true}, iterations = 10000, error = nil},
+		attempts = {
+			{args = {1}, expect = {{1}}, iterations = 4},
 			-- {attempt = "Test 2", args = {5}, expect = {false}, iterations = 100, error = nil},
 			-- {attempt = "Test 3", args = {false}, expect = {false}, iterations = 100, error = nil},
 		},
 	})
 
-	local result = StringTest:run(f)
+	local result = StringTest:run(thing)
 
 	print("Result: ", result)
 end
