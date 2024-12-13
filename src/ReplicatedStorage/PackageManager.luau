@@ -107,7 +107,7 @@ local function _require(module, withoutDefault)
 		return package.default
 
 	elseif (packageIsTable and not withoutDefault) then
-		error("Import failed. A default export was expected for package: \"" .. module.Name .. "\"", 2)
+		error("Import failed. A default export was expected for package: \"" .. module.Name .. "\". Did you mean to use \"" .. module.Name .. "*\" instead?", 2)
 	end
 
 	--[[
@@ -208,8 +208,8 @@ end
 				? import("@Parent/*/ChildModule")
 
 			Which is inferred to mean: Packages.ChildModule. This will NOT reference a 'default' export
-			inside 'ChildModule' if it's a table and one is given. If you want to reference the default
-			export, you must do either of these calls:
+			inside 'ChildModule' like we would expect with a singular import. If you want to reference 
+			the default export, you must do either of these calls:
 
 				? import("@Parent/*/ChildModule/.")
 				? import("@Parent/*/ChildModule/default")
@@ -224,6 +224,10 @@ local function requireAllChildDirectories(dir)
 	end
 
 	return package
+end
+
+local function getReplacedSegment(segment)
+	return segment:gsub("^%.$", "default")
 end
 
 -- TODO: This is for returning the module hierarchy with '**' path segment - not implemented yet
@@ -268,21 +272,14 @@ local function parsePathSegmentInfo(segment)
 	-- booleans indicating if a parse occured
 	local withoutRequire
 	local withoutDefault
-
-	-- replacedSegment: the original segment with initial replacements made
-	-- parsedSegment: the replacedSegment, excluding special characters and modifiers
-	local replacedSegment
 	local parsedSegment
 
-	-- initial replacements
-	replacedSegment = segment:gsub("^%.$", "default")
-
 	-- segment parsing
-	parsedSegment, withoutRequire = replacedSegment:gsub("^@", "")
+	parsedSegment, withoutRequire = segment:gsub("^@", "")
 	parsedSegment, withoutDefault = parsedSegment:gsub("%*$", "")
+	parsedSegment = getReplacedSegment(parsedSegment)
 
 	return {
-		replacedSegment = replacedSegment,
 		parsedSegment = parsedSegment,
 
 		withoutDefault = withoutDefault > 0,
@@ -291,7 +288,6 @@ local function parsePathSegmentInfo(segment)
 		isBackDirectory = segment == "..",
 		isAllChildren = segment == "*",
 		isAllDescendants = segment == "**", 
-		isDefault = segment == ".",
 	}
 end
 
@@ -322,73 +318,98 @@ local function interpretImportPath(dir, pathname)
 			the current directory is a table, then we should be indexing a table for the subsequent
 			path segments. Otherwise, the directory should be an instance.
 		]]
-		local dirIsTable = isTable(dir)
-		local segmentInfo = parsePathSegmentInfo(segment)
+		if (not isTable(dir)) then
+			-- Directory HAS NOT been required beyond this point -- 
+			local segmentInfo = parsePathSegmentInfo(segment)
+			local child = dir:FindFirstChild(segmentInfo.parsedSegment)
+
+			-- Escape requiring a module with '@'
+			if (segmentInfo.withoutRequire and child) then
+				dir = child
+				continue
+			end
+
+			-- Travel back a directory using '..'
+			if (segmentInfo.isBackDirectory and dir.Parent) then
+				dir = dir.Parent
+				continue
+
+			-- ! error:
+			-- If path segment is a back directory but the next directory up doesn't exist
+			elseif (segmentInfo.isBackDirectory) then
+				error("Cannot cd to parent of: \"" .. dir.Name .. "\" (parent does not exist)", 2)
+			end
+
+			-- wild card "*"
+			if (segmentInfo.isAllChildren) then
+				dir = requireAllChildDirectories(dir)
+				continue
+			end
+
+			-- ! error:
+			-- If the child retrieved per the path segment does not exist in the directory
+			if (not child) then
+				error("Import failed. Could not find path segment: \"" .. segmentInfo.parsedSegment .. "\" in directory: \"" .. dir.Name .."\"", 2)
+			end
+
+			-- SEGMENT WAS SUCCESSFULLY REQUIRED -- 
+			local requiredDirectory = requireDirectory(child, segmentInfo.withoutDefault)
+			dir = requiredDirectory
+			
+			continue
+		end
+
+		-- filter the segment for any replacements needed
+		segment = getReplacedSegment(segment)
 
 		-- Directory HAS been required beyond this point --
-		if (dirIsTable and dir[segmentInfo.replacedSegment] ~= nil) then
-			dir = dir[segmentInfo.replacedSegment]
+		if (dir[segment] ~= nil) then
+			dir = dir[segment]
 			continue
 
 		-- ! error:
 		-- If path segment does not exist in directory table
-		elseif (dirIsTable) then
-			error("Path segment \"" .. segmentInfo.replacedSegment .. "\" does not exist in directory", 2)
+		else
+			error("Path segment \"" .. segment .. "\" does not exist in module table", 2)
 		end
-
-		-- Directory HAS NOT been required beyond this point -- 
-		local child = dir:FindFirstChild(segmentInfo.parsedSegment)
-
-		-- Escape requiring a module with '@'
-		if (segmentInfo.withoutRequire and child) then
-			dir = child
-			continue
-		end
-
-		-- Travel back a directory using '..'
-		if (segmentInfo.isBackDirectory and dir.Parent) then
-			dir = dir.Parent
-			continue
-
-		-- ! error:
-		-- If path segment is a back directory but the next directory up doesn't exist
-		elseif (segmentInfo.isBackDirectory) then
-			error("Cannot cd to parent of: \"" .. dir.Name .. "\" (parent does not exist)", 2)
-		end
-
-		-- wild card "*"
-		if (segmentInfo.isAllChildren) then
-			dir = requireAllChildDirectories(dir)
-			continue
-		end
-
-		-- ! error:
-		-- If the child retrieved per the path segment does not exist in the directory
-		if (not child) then
-			error("Import failed. Could not find path segment: \"" .. segmentInfo.parsedSegment .. "\" in directory: \"" .. dir.Name .."\"", 2)
-		end
-
-		-- SEGMENT WAS SUCCESSFULLY REQUIRED -- 
-		local requiredDirectory = requireDirectory(child, segmentInfo.withoutDefault)
-		dir = requiredDirectory
 	end
 
 	return dir
 end
 
+--[[
+	* getLocation(dir<Instance>, pathname<string>):
+
+	@desc:
+		Get the location of an instance from a root directory through a given
+		path. Path uses standard "/" syntax. Ex: "game/Workspace/Baseplate"
+
+	@param dir<Instance>: The root directory to path from
+
+	@param pathname<string>: The path of the instance to locate
+
+	@return location<Instance>:
+		The location of the instance at the provided path
+]]
 local function getLocation(dir, pathname)
 	for segment in pathname:gmatch("[^/]+") do
 		local isBackDirectory = segment == ".."
 		
+		-- If directory is ".." move up a level
 		if (isBackDirectory and dir.Parent) then
 			dir = dir.Parent
 			continue
+
+		-- ! error:
+		-- If back directory doesn't exist
 		elseif (isBackDirectory) then
 			error("Cannot cd to parent of \"" .. dir.Name .. "\" (a nil value)")
 		end
 		
 		local child = dir:FindFirstChild(segment)
 		
+		-- ! error:
+		-- If there is no child found in the directory given the path segment
 		if (not child) then
 			error("Cannot cd to child (\"" .. tostring(segment) .. "\" is not a child of \"" .. tostring(child) .. "\")")
 		end
@@ -399,8 +420,23 @@ local function getLocation(dir, pathname)
 	return dir
 end
 
+--[[
+	* import(rootDirectory<Instance>, location<string>, ...importParams<string>):
+
+	@desc:
+		Import a module or module from a directory. A root directory must be given, and the
+		location to path from. The rest of the arguments index the location and return
+		the required module results.
+
+	@param rootDirectory<Instance>: The directory to get the location from
+	@param location<string>: The relative path to the root directory
+	@param ...importParams<string>: The path names relative to the location
+
+	@return ...requiredModules<any>:
+		The returned result from the required modules of the import
+]]
 local function import(rootDirectory, location, ...)
-	--local importCommands = self._importCommands
+	-- local importCommands = self._importCommands
 	-- local importCommands = PackageManager._importCommands
 
 	local export = {}
@@ -408,13 +444,15 @@ local function import(rootDirectory, location, ...)
 
 	local cd = interpretImportPath(rootDirectory, location)
 
-	--if no import params are given, return the directory's default export
+	-- if no import params are given, return the directory's default export
 	if (#importParams == 0) then
 		return cd
 	end
 
 	--if import params are given, return the file's export
 	for _, param in next, importParams do
+		-- ! error:
+		-- If any import param is not a string
 		if (not isString(param)) then
 			error("Invalid import parameter. Got type: \"" .. typeof(param) .. "\" (expected string). Value: \"" .. tostring(param) .. "\"")
 		end
@@ -430,6 +468,11 @@ local function import(rootDirectory, location, ...)
 	return unpack(export)
 end
 
+--[[
+	-------------------------------
+	| # The PackageManager bundle |
+	-------------------------------
+]]
 do
 	local function pm_import(location, ...)
 		return import(PackageManager._rootDirectory, location, ...)
@@ -447,11 +490,17 @@ do
 
 		o.location = path
 
-		local function from_import(...)
-			return import(root, ...)
+		local function import_from(...)
+			local export = {}
+
+			for _, fromPath in next, {...} do
+				export[#export + 1] = interpretImportPath(root, fromPath)
+			end
+
+			return unpack(export)
 		end
 
-		o.from = from_import
+		o.import = import_from
 		return o
 	end
 

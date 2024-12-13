@@ -1,7 +1,9 @@
 
-local NetworkRequest = {
-    value = "NetworkRequest",
-    default = "DEFAULT",
-}
+return function()
+	local NetworkRequest = {
+			value = "NetworkRequest",
+			default = "DEFAULT",
+	}
 
-return NetworkRequest
+	return NetworkRequest
+end
