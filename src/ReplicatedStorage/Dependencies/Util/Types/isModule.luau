@@ -1,5 +1,5 @@
 
-return function() 
+return function()
 	local function isModule(v)
 		return v:IsA("ModuleScript")
 	end

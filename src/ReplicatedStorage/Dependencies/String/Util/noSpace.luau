@@ -6,9 +6,9 @@ return function()
 		@params: <string> str
 		@returns: <string> trimmedStr
 	]]
-	local function removeWhitespace(str)
+	local function noSpace(str)
 		return str:gsub("%s+", "")
 	end
 	
-	return removeWhitespace
+	return noSpace
 end

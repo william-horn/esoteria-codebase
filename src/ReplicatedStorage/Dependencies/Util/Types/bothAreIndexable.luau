@@ -1,10 +1,10 @@
 
 return function()
-  local function bothAreIndexable(a, b)
-    local isIndexable = require(script.Parent.isIndexable)()
-    
-    return isIndexable(a) and isIndexable(b)
-  end
+	local isIndexable = require(script.Parent.isIndexable)()
+	
+	local function bothAreIndexable(a, b)
+		return isIndexable(a) and isIndexable(b)
+	end
 
-  return bothAreIndexable
+	return bothAreIndexable
 end

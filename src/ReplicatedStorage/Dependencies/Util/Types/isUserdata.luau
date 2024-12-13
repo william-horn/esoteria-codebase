@@ -1,8 +1,8 @@
 
 return function()
-  local function isUserdata(v)
-    return type(v) == "userdata"
-  end
+	local function isUserdata(v)
+		return type(v) == "userdata"
+	end
 
-  return isUserdata
+	return isUserdata
 end

@@ -1,6 +1,5 @@
 
 return function()
-	
 	--[[
 		@desc: Removes whitespace from the right of a string
 		@params: <string> str

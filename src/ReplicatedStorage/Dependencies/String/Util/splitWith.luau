@@ -3,7 +3,7 @@ local lastSplitDelim = ","
 
 return function(import)
   local StringEscaper = import("@String/@Classes/StringEscaper")
-  local trimAround = import("@String/@Util/trimAround")
+  local trimAround = require(script.Parent.trimAround)()
 	
 	--[[
 		String:splitWith(str<string>, delim<string>, options<table>):

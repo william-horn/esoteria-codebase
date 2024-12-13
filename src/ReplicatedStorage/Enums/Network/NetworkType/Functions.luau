@@ -1,6 +1,7 @@
 
 local Functions = {
-  Player = 0
+	default = 1,
+	Player = 0,
 }
 
 return Functions

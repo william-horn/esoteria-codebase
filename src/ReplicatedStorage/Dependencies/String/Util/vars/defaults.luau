@@ -1,6 +1,6 @@
 
 return function(import)
-	local getResultFromMathExpression = import("@String/@Util/calcMathExpression")
+	local calcMathExpression = import("@String/@Util/calcMathExpression")
 	
 	return {
 		vars = {
@@ -10,24 +10,24 @@ return function(import)
 
 		functions = {
 			eval = function(exp)
-				return getResultFromMathExpression(exp)
+				return calcMathExpression(exp)
 			end,
 			floor = function(n)
-				return math.floor(getResultFromMathExpression(n))
+				return math.floor(calcMathExpression(n))
 			end,
 			ceil = function(n)
-				return math.ceil(getResultFromMathExpression(n))
+				return math.ceil(calcMathExpression(n))
 			end,
 			min = function(a, b)
 				return math.min(
-					getResultFromMathExpression(a),
-					getResultFromMathExpression(b)
+					calcMathExpression(a),
+					calcMathExpression(b)
 				)
 			end,
 			max = function(a, b)
 				return math.max(
-					getResultFromMathExpression(a),
-					getResultFromMathExpression(b)
+					calcMathExpression(a),
+					calcMathExpression(b)
 				)
 			end,
 		}

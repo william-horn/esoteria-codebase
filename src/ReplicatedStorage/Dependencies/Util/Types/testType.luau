@@ -1,4 +1,0 @@
-
-return {
-  value = "JUST TESTING"
-}

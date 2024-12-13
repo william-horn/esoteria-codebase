@@ -1,10 +1,10 @@
 
 return function()
-  local function bothAreFunctions(a, b)
-    local isFunction = require(script.Parent.isFunction)()
-    
-    return isFunction(a) and isFunction(b)
-  end
+	local isFunction = require(script.Parent.isFunction)()
 
-  return bothAreFunctions
+	local function bothAreFunctions(a, b)
+		return isFunction(a) and isFunction(b)
+	end
+
+	return bothAreFunctions
 end

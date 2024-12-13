@@ -1,7 +1,7 @@
 
-return function(import)
+return function()
 	local isInstance = require(script.Parent.isInstance)()
-	
+
 	local function bothAreInstances(a, b)
 		return isInstance(a) and isInstance(b)
 	end

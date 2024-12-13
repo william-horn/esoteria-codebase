@@ -1,7 +1,5 @@
 
-
 return function(import)
-  -- local bothAreStrings = require(script.Parent.Types.bothAreString)()
   local bothAreStrings = import("@Util/@Types/bothAreStrings")
 
   

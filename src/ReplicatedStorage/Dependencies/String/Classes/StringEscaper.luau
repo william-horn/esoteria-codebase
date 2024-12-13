@@ -17,7 +17,7 @@
 	
 		local unescaped = Escaper:unescape(escaped) --> "hello world"
 		
-	NOTE:
+	! bug: 	
 		Escaped strings will be effected by your parser if your parser is looking
 		for the following kind of matches:
 			- "\1" - anywhere
@@ -41,8 +41,6 @@
 			--> "found number: 1" (from escaped substitution)
 			--> "found number: 20"
 			
-		@bug: This is a known issue that is yet to be solved.		
-			
 		TODO: potentially add future options for "freezing" a string once escaped, then
 		storing it's unescaped and escaped versions with a unique id to retrieve later.
 		
@@ -54,9 +52,9 @@
 				unescape --> "hello $world test"
 ]]
 
-return function()
-	local isNumber = require(script.Parent.Parent.Parent.Util.Types.isNumber)()
-	local getVacantIndex = require(script.Parent.Parent.Parent.Util.getVacantIndex)()
+return function(import)
+	local isNumber = import("@Util/@Types/isNumber")
+	local getVacantIndex = import("@Util/getVacantIndex")
 	
 	local StringEscaper = {}
 	StringEscaper.__index = StringEscaper
@@ -158,14 +156,15 @@ return function()
 		local stringData = self.escaped
 		local stringToId = self._stringToId
 		
-		local id
-		
-		if (isNumber(text)) then 
-			id = text
-		else
-			id = stringToId[text]
+		local id = isNumber(text) and text or stringToId[text]
+
+		-- ! error:
+		-- If the id does not exist. This can happen if the user manually passes an 
+		-- invalid id number as the text argument
+		if (not id) then
+			error("Invalid id passed to StringEscaper.remove(): Got \"" .. tostring(id) .. "\"")
 		end
-		
+
 		stringData[id] = nil
 		stringToId[text] = nil
 	end
@@ -205,7 +204,6 @@ return function()
 		]]
 		stringEscaper._stringToId = {}
 		stringEscaper.escaped = {}
-    
 		stringEscaper.prefix = prefix
 
 		for index = 1, #escaped do

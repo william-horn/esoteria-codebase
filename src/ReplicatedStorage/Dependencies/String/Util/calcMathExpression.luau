@@ -1,8 +1,10 @@
 
-return function()
-	local StringMath = require(script.Parent.Parent.Enums.StringMath)
-	local removeWhitespace = require(script.Parent.removeWhitespace)()
-	local calcOperationGroup = require(script.Parent.calcOperationGroup)()
+return function(import, pm)
+	local this = pm.from(script)
+
+	local StringMath = import("../@Enums/@StringMath/*")
+	local calcOperationGroup = this.import("../calcOperationGroup")
+	local noSpace = this.import("../noSpace")
 	
 	--[[
 		@desc: Takes a math expression and returns the numeric result
@@ -10,7 +12,7 @@ return function()
 		@returns: <number> result
 	]]
 	local function calcMathExpression(expression)
-		expression = removeWhitespace(expression)
+		expression = noSpace(expression)
 		local OperationType = StringMath.OperationType
 
 		local function evaluate(exp)

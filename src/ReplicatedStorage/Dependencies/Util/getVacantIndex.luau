@@ -9,6 +9,6 @@ return function()
 
 		return #t + 1
 	end
-	
+
 	return getVacantIndex
 end

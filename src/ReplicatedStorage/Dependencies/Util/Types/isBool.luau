@@ -1,5 +1,5 @@
 
-return function() 
+return function()
 	local function isBool(v)
 		return type(v) == "boolean"
 	end

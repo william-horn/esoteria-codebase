@@ -1,4 +1,0 @@
-
-return {
-  value = 0
-}

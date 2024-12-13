@@ -1,7 +1,8 @@
 
 return function(import, pm)
-	local StringMath = require(script.Parent.Parent.Enums.StringMath)
-	local StringEscaper = require(script.Parent.Parent.Classes.StringEscaper)().default
+	local StringMath = import("../@Enums/@StringMath/*")
+	local StringEscaper = import("@String/@Classes/StringEscaper")
+	
 	local doMathOp = require(script.Parent.doMathOp)()
 	
 	--[[
@@ -26,7 +27,7 @@ return function(import, pm)
 		elseif (ops == OperationType.Addition or ops == OperationType.Subtraction) then
 			opString = '+-'
 		else
-			error('OperationType is not recognized')
+			error('OperationType is not recognized. Got: "' .. type(ops) .. '"')
 		end
 
 		opString = StringEscaper.escapeMagicChars(opString)
