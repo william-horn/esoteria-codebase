@@ -35,7 +35,6 @@ local isTable = require(Path__UtilPackage.Types.isTable)()
 local isInstance = require(Path__Dependencies.Util.Types.isInstance)()
 local isModule = require(Path__Dependencies.Util.Types.isModule)()
 local isFunction = require(Path__Dependencies.Util.Types.isFunction)()
-local toBool = require(Path__Dependencies.Util.Types.toBool)()
 --local Commands = require(Path__Dependencies.Commands)().default
 
 --------------------------------
@@ -286,8 +285,8 @@ local function parsePathSegmentInfo(segment)
 		replacedSegment = replacedSegment,
 		parsedSegment = parsedSegment,
 
-		withoutDefault = toBool(withoutDefault),
-		withoutRequire = toBool(withoutRequire),
+		withoutDefault = withoutDefault > 0,
+		withoutRequire = withoutRequire > 0,
 
 		isBackDirectory = segment == "..",
 		isAllChildren = segment == "*",
