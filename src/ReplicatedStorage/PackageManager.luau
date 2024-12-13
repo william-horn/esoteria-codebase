@@ -13,10 +13,18 @@
 	TODO: Before adding the import cache feature, benchmark the current usage of it to compare against the cached version
 ]]
 
+-------------------------
+---- ROBLOX SERVICES ---- 
+-------------------------
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- local ServerScriptService = game:GetService("ServerScriptService")
 -- local PlayerService = game:GetService("Players")
 -- local RunService = game:GetService("RunService")
+
+----------------------
+---- DEPENDENCIES ---- 
+----------------------
 
 local Path__Dependencies = ReplicatedStorage:WaitForChild("Dependencies")
 local Path__UtilPackage = Path__Dependencies.Util
@@ -27,17 +35,24 @@ local isTable = require(Path__UtilPackage.Types.isTable)()
 local isInstance = require(Path__Dependencies.Util.Types.isInstance)()
 local isModule = require(Path__Dependencies.Util.Types.isModule)()
 local isFunction = require(Path__Dependencies.Util.Types.isFunction)()
+local toBool = require(Path__Dependencies.Util.Types.toBool)()
 --local Commands = require(Path__Dependencies.Commands)().default
+
+--------------------------------
+---- PACKAGE MANAGER MODULE ---- 
+--------------------------------
 
 local PackageManager = {}
 PackageManager._importCalls = 0
+PackageManager._rootDirectory = Path__Dependencies
+--PackageManager._importCommands = Commands.new()
 
 --[[
 	* _require(module<ModuleScript>, withoutDefault<boolean>):
 
 	@desc:
-		! --> Must be called only AFTER 'PackageManager.import' is defined. 
-			This is because
+		! --> warning:
+			_require must be called only AFTER 'PackageManager.import' is defined. This is because
 			'PackageManager.import' is passed as an argument to the result of 'require(module)'
 			if that result is a function.
 		! <--
@@ -106,15 +121,6 @@ local function _require(module, withoutDefault)
 	return package
 end
 
-do
-	-- ROOT IMPORT DIRECTORY --
-	local rootDirectory = Path__Dependencies
-	PackageManager._rootDirectory = rootDirectory
-	
-	-- package manager import commands
-	--PackageManager._importCommands = Commands.new()
-end
-
 --[[
   * requireDirectory(dictionary<Instance>, withoutDefault<boolean>):
 
@@ -138,22 +144,22 @@ end
 	@return: The result of the required directory
 ]]
 local function requireDirectory(directory, withoutDefault)
-	-- ! throw error:
-	-- If module is not an instance, throw error
+	-- ! error:
+	-- If module is not an instance
 	if (not isInstance(directory)) then
 		error("Could not require directory. Instance expected, got: \"" .. type(directory) .. "\"", 2)
 	end
 
-	-- CASE 1: DIRECTORY IS A MODULE
+	-- Case 1: Directory is a module
 	if (isModule(directory)) then
 		return _require(directory, withoutDefault)
 	end
 
-	-- CASE 2: DIRECTORY IS NOT A MODULE
+	-- Case 2: Directory is a module
 	local defaultExport = directory:FindFirstChild("default")
 
-	-- ! throw error:
-	-- If module is nil or not a module script, throw error
+	-- ! error:
+	-- If module is nil or not a module script
 	if (defaultExport == nil or not isModule(defaultExport)) then
 		error("Failed to import from file: \"" .. directory.Name .. "\" (file does not contain a default export module)", 2)
 	end
@@ -210,7 +216,7 @@ end
 				? import("@Parent/*/ChildModule/default")
 
 	@param dir<Instance>: The directory to require the child directories from
-	@return: requiredDirectories<table>: A table of all required child directories
+	@return requiredDirectories<table>: A table of all required child directories
 ]]
 local function requireAllChildDirectories(dir)
 	local package = {}
@@ -260,22 +266,33 @@ end
 	@return newSegment<string>: The modified path segment, with booleans
 ]]
 local function parsePathSegmentInfo(segment)
+	-- booleans indicating if a parse occured
 	local withoutRequire
 	local withoutDefault
-	local segmentValue
 
-	segmentValue, withoutRequire = segment:gsub("^@", "")
-	segmentValue, withoutDefault = segment:gsub("%*$", "")
-	segmentValue = segment:gsub("^%.$", "default")
+	-- replacedSegment: the original segment with initial replacements made
+	-- parsedSegment: the replacedSegment, excluding special characters and modifiers
+	local replacedSegment
+	local parsedSegment
+
+	-- initial replacements
+	replacedSegment = segment:gsub("^%.$", "default")
+
+	-- segment parsing
+	parsedSegment, withoutRequire = replacedSegment:gsub("^@", "")
+	parsedSegment, withoutDefault = parsedSegment:gsub("%*$", "")
 
 	return {
-		value = segmentValue,
-		withoutDefault = withoutDefault,
-		withoutRequire = withoutRequire,
+		replacedSegment = replacedSegment,
+		parsedSegment = parsedSegment,
+
+		withoutDefault = toBool(withoutDefault),
+		withoutRequire = toBool(withoutRequire),
 
 		isBackDirectory = segment == "..",
 		isAllChildren = segment == "*",
 		isAllDescendants = segment == "**", 
+		isDefault = segment == ".",
 	}
 end
 
@@ -310,25 +327,18 @@ local function interpretImportPath(dir, pathname)
 		local segmentInfo = parsePathSegmentInfo(segment)
 
 		-- Directory HAS been required beyond this point --
-		if (dirIsTable and dir[segmentInfo.value] ~= nil) then
-			-- ! throw error:
-			-- Special char '*' is only used to ignore default imports of required module tables.
-			-- If the directory is already a table, this servers no purpose, so throw error
-			if (segmentInfo.withoutDefault) then 
-				error("The 'ignore default export' modifier (*) does nothing in segment \"" .. segment .. "\" - directory is already required") 
-			end
-
-			dir = dir[segmentInfo.value]
+		if (dirIsTable and dir[segmentInfo.replacedSegment] ~= nil) then
+			dir = dir[segmentInfo.replacedSegment]
 			continue
 
+		-- ! error:
+		-- If path segment does not exist in directory table
 		elseif (dirIsTable) then
-			-- ! throw error:
-			-- If path segment does not exist in directory table, throw error
-			error("Path segment \"" .. segmentInfo.value .. "\" does not exist in directory", 2)
+			error("Path segment \"" .. segmentInfo.replacedSegment .. "\" does not exist in directory", 2)
 		end
 
 		-- Directory HAS NOT been required beyond this point -- 
-		local child = dir:FindFirstChild(segmentInfo.value)
+		local child = dir:FindFirstChild(segmentInfo.parsedSegment)
 
 		-- Escape requiring a module with '@'
 		if (segmentInfo.withoutRequire and child) then
@@ -341,7 +351,8 @@ local function interpretImportPath(dir, pathname)
 			dir = dir.Parent
 			continue
 
-		-- ! 
+		-- ! error:
+		-- If path segment is a back directory but the next directory up doesn't exist
 		elseif (segmentInfo.isBackDirectory) then
 			error("Cannot cd to parent of: \"" .. dir.Name .. "\" (parent does not exist)", 2)
 		end
@@ -352,16 +363,10 @@ local function interpretImportPath(dir, pathname)
 			continue
 		end
 
-		--[[
-			import("dir") --> implies: "require(dir).default"
-			import("dir*") --> implies: "require(dir)"
-
-			import("folder") --> implies: "require(dir.default)"
-		]]
-
-		-- child not found in directory
+		-- ! error:
+		-- If the child retrieved per the path segment does not exist in the directory
 		if (not child) then
-			error("Import failed. Could not find path segment: \"" .. segmentInfo.value .. "\"", 2)
+			error("Import failed. Could not find path segment: \"" .. segmentInfo.parsedSegment .. "\" in directory: \"" .. dir.Name .."\"", 2)
 		end
 
 		-- SEGMENT WAS SUCCESSFULLY REQUIRED -- 
