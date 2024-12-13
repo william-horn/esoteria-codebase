@@ -1,6 +1,6 @@
 
 return function()
-  local function mergeArrays(arrays)
+  local function mergeAll(arrays)
     local all = {}
   
     for i = 1, #arrays do
@@ -14,5 +14,5 @@ return function()
     return all
   end
 
-  return mergeArrays
+  return mergeAll
 end

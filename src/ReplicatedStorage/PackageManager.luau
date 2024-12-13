@@ -35,6 +35,7 @@ local isTable = require(Path__UtilPackage.Types.isTable)()
 local isInstance = require(Path__Dependencies.Util.Types.isInstance)()
 local isModule = require(Path__Dependencies.Util.Types.isModule)()
 local isFunction = require(Path__Dependencies.Util.Types.isFunction)()
+local exists = require(Path__Dependencies.Util.Types.exists)()
 --local Commands = require(Path__Dependencies.Commands)().default
 
 --------------------------------
@@ -103,7 +104,7 @@ local function _require(module, withoutDefault)
 		? withDefault = true:
 			return the 'module.default'
 	]]
-	if (packageIsTable and not withoutDefault and package.default ~= nil) then
+	if (packageIsTable and not withoutDefault and exists(package.default)) then
 		return package.default
 
 	elseif (packageIsTable and not withoutDefault) then
@@ -151,17 +152,15 @@ local function requireDirectory(directory, withoutDefault)
 
 	-- Case 1: Directory is a module
 	if (isModule(directory)) then
-		return _require(directory, withoutDefault)
+		return {
+			module = _require(directory, withoutDefault),
+			moduleWasRequired = true
+		}
 	end
 
 	-- Case 2: Directory is a module
 	local defaultExport = directory:FindFirstChild("default")
-
-	-- ! error:
-	-- If module is nil or not a module script
-	if (defaultExport == nil or not isModule(defaultExport)) then
-		error("Failed to import from file: \"" .. directory.Name .. "\" (file does not contain a default export module)", 2)
-	end
+	local defaultExists = exists(defaultExport) and isModule(defaultExport)
 
 	--[[
 		? FYI:
@@ -170,7 +169,25 @@ local function requireDirectory(directory, withoutDefault)
 		a 'default' export inside the return of the module. This is because the module itself
 		is the implied 'default' return value. Thus, why we do _require(module, true) here.
 	]]
-	return _require(defaultExport, true)
+	if (defaultExists and not withoutDefault) then
+		return {
+			module = _require(defaultExport, true),
+			moduleWasRequired = true
+		}
+
+	elseif (not defaultExists and withoutDefault) then
+		warn("Directory \"" .. directory.Name .. "\" tried to be required, but it has no default export module. Attempt aborted.")
+
+		return {
+			module = nil,
+			moduleWasRequired = false
+		}
+
+	-- ! error:
+	-- If default module is nil or not a module script, and a default is required
+	else
+		error("Failed to import from file: \"" .. directory.Name .. "\" (file does not contain a default export module)", 2)
+	end
 end
 
 --[[
@@ -219,8 +236,13 @@ end
 ]]
 local function requireAllChildDirectories(dir)
 	local package = {}
-	for moduleName, module in next, dir:GetChildren() do
-      package[module.Name] = requireDirectory(module, true)
+
+	for childName, child in next, dir:GetChildren() do
+		local requiredDirectory = requireDirectory(child, true)
+
+		if (requiredDirectory.moduleWasRequired) then
+    	package[child.Name] = requiredDirectory.module
+		end
 	end
 
 	return package
@@ -314,7 +336,7 @@ local function interpretImportPath(dir, pathname)
 		--[[
 			? FYI: 
 
-			`dirIsTable` is used to determine how the rest of the path should be interpreted. If
+			`isTable(dir)` is used to determine how the rest of the path should be interpreted. If
 			the current directory is a table, then we should be indexing a table for the subsequent
 			path segments. Otherwise, the directory should be an instance.
 		]]
@@ -352,10 +374,15 @@ local function interpretImportPath(dir, pathname)
 				error("Import failed. Could not find path segment: \"" .. segmentInfo.parsedSegment .. "\" in directory: \"" .. dir.Name .."\"", 2)
 			end
 
-			-- SEGMENT WAS SUCCESSFULLY REQUIRED -- 
 			local requiredDirectory = requireDirectory(child, segmentInfo.withoutDefault)
-			dir = requiredDirectory
-			
+
+			-- ! error:
+			-- The required directory failed to locate and require a module.
+			if (not requiredDirectory.moduleWasRequired) then
+				error("Import failed. The directory \"" .. child.Name .. "\" does not contain a module to require.")
+			end
+
+			dir = requiredDirectory.module
 			continue
 		end
 
@@ -363,7 +390,7 @@ local function interpretImportPath(dir, pathname)
 		segment = getReplacedSegment(segment)
 
 		-- Directory HAS been required beyond this point --
-		if (dir[segment] ~= nil) then
+		if (exists(dir[segment])) then
 			dir = dir[segment]
 			continue
 

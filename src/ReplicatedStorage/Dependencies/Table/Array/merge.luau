@@ -6,7 +6,7 @@ return function()
     @param <table> b
     @returns: <table> c
   ]]
-  local function mergeArray(a, b)
+  local function merge(a, b)
     local c = table.clone(b)
 
     for i = 1, #a do
@@ -17,5 +17,5 @@ return function()
     return c
   end
 
-  return mergeArray
+  return merge
 end 

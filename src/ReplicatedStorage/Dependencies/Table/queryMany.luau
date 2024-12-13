@@ -2,7 +2,7 @@
 return function(import)
   local matchesQuery = import("@Table", "matchesQuery")
 
-  local function queryManyTables(array, query, options)
+  local function queryMany(array, query, options)
     local matches = {} 
 
     for _, item in ipairs(array) do
@@ -14,5 +14,5 @@ return function(import)
     return matches
   end
 
-  return queryManyTables
+  return queryMany
 end
