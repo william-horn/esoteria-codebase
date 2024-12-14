@@ -5,139 +5,64 @@
 	Server-side and client-side interface for sending requests over the network
 ]]
 
+--[[
+	API:
+
+	? -- remote event TCP API
+	Network.sendTCP()
+	Network.sendAllTCP()
+	Network.sendListTCP()
+	Network.sendOthersTCP() -- this will call Network.sendListTCP() internally
+
+	? -- remote event UDP API
+	Network.sendAllUDP()
+	Network.sendUDP()
+	Network.sendListUDP()
+	Network.sendOthersUDP()
+
+	? -- remote function API
+	Network.request()
+
+
+	# Examples:
+
+	Server -> Client:
+
+		Network.sendTCP(
+			game.Players.JohnDoe,
+			{
+				channel = RemoteChannel.Player, 
+				request = RequestType.GetPlayer
+			},
+			{
+				...payload...
+			}
+		)
+
+
+
+
+]]
+
 return function(import, pm) 
+	-- Directories
 	local eventEnums = pm.from("../Enums/EventSignal")
 	local systemEnums = pm.from("../Enums/System")
 	local networkEnums = pm.from("../Enums/Network")
 
+	-- Enums
 	local EventValidationStatus = eventEnums.import("EventValidationStatus*")
 	local MachineType = systemEnums.import("MachineType*")
 	local NetworkRequest, NetworkType = networkEnums.import("NetworkRequest*", "NetworkType*")
 
+	-- Dependencies
 	local System, isServer, isClient = import("@System", ".", "isServer", "isClient")
 
+	--[[
+		---------------------
+		| # Network module: |
+		---------------------
+	]]
 	local Network = {}
 
-	--[[
-		Get remote trigger methods based on current system
-	]]
-	local signalDispatchAliases = {
-		RemoteFunction = {
-			[MachineType.Server] = 'InvokeClient',
-			[MachineType.Client] = 'InvokeServer',
-		},
-
-		RemoteEvent = {
-			[MachineType.Server] = 'FireClient',
-			[MachineType.Client] = 'FireServer',
-		},
-
-		BindableFunction = {
-			[MachineType.Server] = 'Invoke',
-			[MachineType.Client] = 'Invoke',
-		},
-
-		BindableEvent = {
-			[MachineType.Server] = 'Fire',
-			[MachineType.Client] = 'Fire'
-		}
-	}
-
-	local function handleRemoteRequest(remoteType, remoteSignalAlias)
-		return function(signalName, request, ...)
-			-- flip first 2 args if calling on server to account for default player arg
-			if (isServer()) then
-				signalName, request = request, signalName
-			end
-
-			-- get the remote data from the given signal name
-			local remoteData = remoteType[signalName]
-
-			if (not remoteData) then
-				System.warn('No remote data was found for remote ['..tostring(signalName)..']')
-				return
-			end
-
-			-- validate remote event before 
-			local remoteValidation = remoteData.event:getValidationReport()
-
-			if (remoteValidation.result == EventValidationStatus.Rejected) then
-				System.warn('REMOTE VALIDATION REJECTED: ', remoteValidation.reasons)
-				return 
-			end
-
-			-- fire custom event to keep track of analytics and run any addition handlers binded to the remote
-			remoteData.event:fire(request, ...)
-
-			-- fire the actual remote object
-			return remoteData.remote[remoteSignalAlias[System.MachineType]](
-				remoteData.remote, 
-				request, 
-				...
-			)
-		end
-	end
-
-	--[[
-		@desc: Send an outgoing network request
-		@param: signalName (string)
-		@param: request (string)
-		@param: ... (any)
-	]]
-	function Network:fire(signalName, request, ...)
-		return handleRemoteRequest(Remotes[NetworkType.Send], SignalDispatchAliases.RemoteEvent)(
-			signalName, 
-			request, 
-			...
-		)
-	end
-
-	function Network:fireAll(signalName, request, ...)
-		local remoteData = Remotes[NetworkType.Send][signalName]
-
-		if (isClient()) then
-			System.error('fireAll cannot be called from client')
-			return
-		end
-
-		local remoteValidation = remoteData.event:getValidationReport()
-
-		if (remoteValidation.result == EventValidationStatus.Rejected) then
-			System.warn('REMOTE VALIDATION REJECTED: ', remoteValidation.reasons)
-			return 
-		end
-
-		remoteData.event:fire(request, ...)
-		remoteData.remote:FireAllClients(Enumify:serialize(request), ...)
-	end
-
-	function Network:invoke(signalName, request, ...)
-		return handleRemoteRequest(Remotes[NetworkType.Receive], SignalDispatchAliases.RemoteFunction)(signalName, request, ...)
-	end
-
-	-- for executing BindableFunctions
-	function Network:run(signalName, request, ...)
-		return handleRemoteRequest(Remotes[NetworkType.Functions], SignalDispatchAliases.BindableFunction)(signalName, request, ...)
-	end
-
-	-- for executing BindableEvents
-	function Network:dispatch(signalName, request, ...)
-		return handleRemoteRequest(Remotes[NetworkType.Events], SignalDispatchAliases.BindableEvent)(signalName, request, ...)
-	end
-
-	--[[
-		@desc: Connect all remote listeners to their handler functions
-		@param: none
-		@return: none
-	]]
-	function Network:listen()
-		Listeners:listen()
-		return self
-	end
-
-	return {
-		default = Network,
-		NetworkRequest = NetworkRequest,
-		NetworkType = NetworkType
-	}
 end

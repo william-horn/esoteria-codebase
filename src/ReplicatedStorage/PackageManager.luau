@@ -10,6 +10,7 @@
 	
 	TODO: Add warning if multiple instance names exist in a directory
 	TODO: When Commands module is finished, create import commands such as "$nocache" or "$benchmark"
+	TODO: When commands are added, create a "$ignore _" command to ignore certain file name imports such as starting with an underscore
 
 	DONE - TODO: Store and cache import path names. Store first part separetely, then search for the other secondary imports in a lookup table
 	DONE - Before adding the import cache feature, benchmark the current usage of it to compare against the cached version
