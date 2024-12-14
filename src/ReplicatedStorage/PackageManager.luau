@@ -548,11 +548,6 @@ local function import(rootDirectory, location, ...)
 			error("Invalid import parameter. Got type: \"" .. typeof(param) .. "\" (expected string). Value: \"" .. tostring(param) .. "\"")
 		end
 
-		--if (importCommands:hasCommandPrefix(param)) then
-		--	importCommands:run(param)
-		--else
-		--	export[#export + 1] = getPathResult(cd, param)
-		--end
 		export[#export + 1] = interpretImportPath(cd, param)
 	end
 
