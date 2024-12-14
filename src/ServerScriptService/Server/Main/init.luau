@@ -1,5 +1,8 @@
 
 return function(import, pm)
+
+	local d = pm.from(script)
+	print(d)
 	local EventSignal = import("EventSignal")
 
 	local e = EventSignal.new()
@@ -10,22 +13,15 @@ return function(import, pm)
 		end
 	})
 
-	-- local withDotMethod = import("@Util/withDotMethod")
+	e.fire()
 
-	-- local t, _t = withDotMethod()
+	task.wait(1)
 
-	-- function t:test()
-	-- 	return self.name .. ' - worked'
-	-- end
+	e.fire()
 
-	-- function t:new()
-	-- 	local o = setmetatable({}, _t)
-	-- 	o.name = "john"
-
-	-- 	return o
-	-- end
-
-	-- print(t.new().test())
-	-- print(t.test())
+	-- object.getName = nil
+	-- Class.getName = nil
+	-- Class.new = nil
+	-- Class = nil
 
 end

@@ -54,7 +54,7 @@
 
 return function(import)
 	local isNumber = import("@Util/@Types/isNumber")
-	local getVacantIndex = import("@Util/getVacantIndex")
+	local getVacantIndex = import("@Table/@Dictionary/getVacantIndex")
 	local withDotMethod = import("@Util/withDotMethod")
 	
 	local StringEscaper, _StringEscaper = withDotMethod()

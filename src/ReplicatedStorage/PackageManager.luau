@@ -38,12 +38,13 @@ local isInstance = require(Path__Dependencies.Util.Types.isInstance)()
 local isModule = require(Path__Dependencies.Util.Types.isModule)()
 local isFunction = require(Path__Dependencies.Util.Types.isFunction)()
 local exists = require(Path__Dependencies.Util.Types.exists)()
+local withDotMethod = require(Path__Dependencies.Util.withDotMethod)()
 
 --------------------------------
 ---- PACKAGE MANAGER MODULE ---- 
 --------------------------------
 
-local PackageManager = {}
+local PackageManager, _PackageManager = withDotMethod()
 PackageManager._importCalls = 0
 PackageManager._rootDirectory = Path__Dependencies
 
@@ -64,11 +65,11 @@ PackageManager._cachedImportPaths = cachedImportPaths
 --PackageManager._importCommands = Commands.new()
 
 --[[
-	* _require(module<ModuleScript>, withoutDefault<boolean>):
+	* require(module<ModuleScript>, withoutDefault<boolean>):
 
 	@desc:
 		! --> warning:
-			_require must be called only AFTER 'PackageManager.import' is defined. This is because
+			require must be called only AFTER 'PackageManager.import' is defined. This is because
 			'PackageManager.import' is passed as an argument to the result of 'require(module)'
 			if that result is a function.
 		! <--
@@ -86,8 +87,8 @@ PackageManager._cachedImportPaths = cachedImportPaths
 
 	@return: The required module
 ]]
-local function _require(module, withoutDefault)
-	PackageManager._importCalls += 1
+function PackageManager:require(module, withoutDefault)
+	self._importCalls += 1
 
 	-- native require
 	local package = require(module)
@@ -99,11 +100,11 @@ local function _require(module, withoutDefault)
 		the package manager environment variables (import function, etc)
 	]]
 	if (isFunction(package)) then
-		if (not PackageManager.import) then
+		if (not self.import) then
 			error("Tried using internal _require() before 'PackageManager.import' was defined (aborted call)")
 		end
 
-		package = package(PackageManager.import, PackageManager)
+		package = package(self.import, self)
 	end
 
 	local packageIsTable = isTable(package)
@@ -159,7 +160,7 @@ end
 
 	@return: The result of the required directory
 ]]
-local function requireDirectory(directory, withoutDefault)
+function PackageManager:requireDirectory(directory, withoutDefault)
 	-- ! error:
 	-- If module is not an instance
 	if (not isInstance(directory)) then
@@ -169,7 +170,7 @@ local function requireDirectory(directory, withoutDefault)
 	-- Case 1: Directory is a module
 	if (isModule(directory)) then
 		return {
-			module = _require(directory, withoutDefault),
+			module = self.require(directory, withoutDefault),
 			moduleWasRequired = true
 		}
 	end
@@ -195,7 +196,7 @@ local function requireDirectory(directory, withoutDefault)
 
 	elseif (defaultExists) then
 		return {
-			module = _require(defaultExport, true),
+			module = self.require(defaultExport, true),
 			moduleWasRequired = true
 		}
 
@@ -250,11 +251,11 @@ end
 	@param dir<Instance>: The directory to require the child directories from
 	@return requiredDirectories<table>: A table of all required child directories
 ]]
-local function requireAllChildDirectories(dir)
+function PackageManager:requireAllChildDirectories(dir)
 	local package = {}
 
 	for childName, child in next, dir:GetChildren() do
-		local requiredDirectory = requireDirectory(child, true)
+		local requiredDirectory = self.requireDirectory(child, true)
 
 		if (requiredDirectory.moduleWasRequired) then
 			package[child.Name] = requiredDirectory.module
@@ -341,7 +342,7 @@ end
 
 	@return: importResult<DirectoryInstance|table>
 ]]
-local function interpretImportPath(dir, pathname)
+function PackageManager:interpretImportPath(dir, pathname)
 	--[[
 		? FYI:
 
@@ -410,7 +411,7 @@ local function interpretImportPath(dir, pathname)
 
 			-- If segment is wildcard selector "*"
 			elseif (segmentInfo.isAllChildren) then
-				dir = requireAllChildDirectories(dir)
+				dir = self.requireAllChildDirectories(dir)
 
 			-- ! error:
 			-- If the child retrieved per the path segment does not exist in the directory
@@ -419,7 +420,7 @@ local function interpretImportPath(dir, pathname)
 
 			-- If segment ignores requiring using the "@" prefix
 			elseif (not segmentInfo.withoutRequire) then
-				local requiredDirectory = requireDirectory(child, segmentInfo.withoutDefault)
+				local requiredDirectory = self.requireDirectory(child, segmentInfo.withoutDefault)
 
 				-- ! error:
 				-- The required directory failed to locate and require a module. This typically
@@ -482,7 +483,7 @@ end
 	@return location<Instance>:
 		The location of the instance at the provided path
 ]]
-local function getLocation(dir, pathname)
+function PackageManager:getLocation(dir, pathname)
 	for segment in pathname:gmatch("[^/]+") do
 		local isBackDirectory = segment == ".."
 		
@@ -526,14 +527,14 @@ end
 	@return ...requiredModules<any>:
 		The returned result from the required modules of the import
 ]]
-local function import(rootDirectory, location, ...)
+function PackageManager:importAt(rootDirectory, location, ...)
 	-- local importCommands = self._importCommands
 	-- local importCommands = PackageManager._importCommands
 
 	local export = {}
 	local importParams = {...}
 
-	local cd = interpretImportPath(rootDirectory, location)
+	local cd = self.interpretImportPath(rootDirectory, location)
 
 	-- if no import params are given, return the directory's default export
 	if (#importParams == 0) then
@@ -548,7 +549,7 @@ local function import(rootDirectory, location, ...)
 			error("Invalid import parameter. Got type: \"" .. typeof(param) .. "\" (expected string). Value: \"" .. tostring(param) .. "\"")
 		end
 
-		export[#export + 1] = interpretImportPath(cd, param)
+		export[#export + 1] = self.interpretImportPath(cd, param)
 	end
 
 	return unpack(export)
@@ -559,45 +560,34 @@ end
 	| # The PackageManager bundle |
 	-------------------------------
 ]]
-do
-	local function pm_import(location, ...)
-		return import(PackageManager._rootDirectory, location, ...)
-	end
-
-	local function pm_from(path)
-		local o = {}
-		local root
-
-		if (not isInstance(path)) then
-			root = getLocation(PackageManager._rootDirectory, path)
-		else
-			root = path
-		end
-
-		o.location = path
-
-		local function import_from(...)
-			local export = {}
-
-			for _, fromPath in next, {...} do
-				export[#export + 1] = interpretImportPath(root, fromPath)
-			end
-
-			return unpack(export)
-		end
-
-		o.import = import_from
-		return o
-	end
-
-	PackageManager.import = pm_import
-	PackageManager.from = pm_from
+function PackageManager:import(location, ...)
+	return self.importAt(self._rootDirectory, location, ...)
 end
 
-function PackageManager:getImportCalls()
-	return self._importCalls
-end
+function PackageManager:from(location)
+	local o = {}
+	local root
 
-PackageManager.require = _require
+	if (not isInstance(location)) then
+		root = self.getLocation(PackageManager._rootDirectory, location)
+	else
+		root = location
+	end
+
+	o.location = location
+
+	local function import_from(...)
+		local export = {}
+
+		for _, fromPath in next, {...} do
+			export[#export + 1] = self.interpretImportPath(root, fromPath)
+		end
+
+		return unpack(export)
+	end
+
+	o.import = import_from
+	return o
+end
 
 return PackageManager

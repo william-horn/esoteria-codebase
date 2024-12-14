@@ -5,7 +5,7 @@ return function(import)
 
 	local StringTest = TestMaker.new("String Util Test")
 
-	StringTest:add({
+	StringTest.add({
 		try = util.trimLeft,
 		name = "trimLeft",
 		attempts = {
@@ -15,7 +15,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.trimRight,
 		name = "trimRight",
 		attempts = {
@@ -25,7 +25,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.trimAround,
 		name = "trimAround",
 		attempts = {
@@ -36,7 +36,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.toSingleSpace,
 		name = "toSingleSpace",
 		attempts = {
@@ -48,7 +48,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.splitWith,
 		name = "splitWith",
 		attempts = {
@@ -58,7 +58,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.noSpace,
 		name = "noSpace",
 		attempts = {
@@ -66,7 +66,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.isEmpty,
 		name = "isEmpty",
 		attempts = {
@@ -76,7 +76,7 @@ return function(import)
 		}
 	})
 
-	StringTest:add({
+	StringTest.add({
 		try = util.doMathOp,
 		name = "doMathOp",
 		attempts = {
@@ -85,5 +85,5 @@ return function(import)
 		}
 	})
 
-	StringTest:runAll()
+	StringTest.runAll()
 end

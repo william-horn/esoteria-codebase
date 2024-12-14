@@ -40,7 +40,7 @@
 
 	? Supports inheritance:
 
-		local Class = {}
+		local Class, _Class = withDotMethod()
 		Class.name = "Ralph"
 
 		function Class:getName()
@@ -48,7 +48,7 @@
 		end
 
 		function Class.new()
-			return setmetatable({ name = "New Object" }, withDotMethod(Class))
+			return setmetatable({ name = "New Object" }, _Class)
 		end
 
 		local object = Class.new()
@@ -63,6 +63,10 @@ return function()
 		local m = {}
 		local _m = {}
 		local f = {}
+
+		-- setmetatable(f, {
+		-- 	__mode = "kv"
+		-- })
 		
 		local function repl(t, k, v)
 			if (type(v) == "function") then
