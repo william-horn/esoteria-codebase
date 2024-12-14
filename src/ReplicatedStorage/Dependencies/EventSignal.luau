@@ -18,24 +18,19 @@
 		If you have any questions or concerns, please email me at: williamjosephhorn@gmail.com
 ]]
 
-return function(import)
+return function(import, pm)
 	
   ---------------
   --- Imports ---
   ---------------
-  local PackageManager = require(game.ReplicatedStorage.PackageManager)
+	local enums = pm.from("../Enums/EventSignal")
 
-  -- External imports
-  local UUID = PackageManager:import("UUID")
-  local Enumify = PackageManager:import("Enumify")
+  local UUID = import("@Util/uuid")
+  local CustomType = import("../@Enums/CustomType*")
 
-  -- Internal imports
-  local LocalEnums = Enumify:createFromDirectory(script.Enums)
-  local CustomType = PackageManager:importEnum("CustomType")
-
-  local DispatchStatusType = LocalEnums.DispatchStatusType
-  local EventValidationStatus = LocalEnums.EventValidationStatus
-  local EventStateType = LocalEnums.EventStateType
+  local DispatchStatusType = enums.import("DispatchStatusType*")
+  local EventValidationStatus = enums.import("EventValidationStatus*")
+  local EventStateType = enums.import("EventStateType*")
 
   local Dispatcher = require(script.Dispatcher)
   local EventValidationReport = require(script.EventValidationReport)
