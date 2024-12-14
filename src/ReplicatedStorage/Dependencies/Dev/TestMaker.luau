@@ -32,8 +32,9 @@ return function(import, pm)
 	local TestStatus = import("../@Enums/@Dev/TestStatus*")
 	local isTable = import("@Util/@Types/isTable")
 
-	local TestMaker = {}
-	TestMaker.__index = TestMaker
+	local withDotMethod = import("@Util/withDotMethod")
+
+	local TestMaker, _TestMaker = withDotMethod()
 
 	local testStatusAliases = {
 		[TestStatus.Failed] = "Failed",
@@ -42,24 +43,18 @@ return function(import, pm)
 	}
 
 	local function createAttemptRecord(attempt)
-		local record = {}
+		local record = withDotMethod()
 
 		record.lastStatus = nil
 		record.runtime = 0
 		record.iterations = attempt.iterations
 		record.errorMessages = {}
 
-		return setmetatable(record, {
-			__index = function(self, k)
-				if (k == "addError") then
-					return function(_, status, message)
-						self.errorMessages[status] = message
-					end
-				else
-					return nil
-				end
-			end
-		})
+		function record:addError(status, message)
+			self.errorMessages[status] = message
+		end
+
+		return record
 	end
 
 	function TestMaker:add(testData)
@@ -190,7 +185,7 @@ return function(import, pm)
 		local failedData = {}
 
 		for f, data in next, self.functions do
-			local result = self:run(f)
+			local result = self.run(f)
 			functionsTested[data.name] = result
 
 			if (result.allPassed) then
@@ -221,14 +216,14 @@ return function(import, pm)
 		return results
 	end
 
-	function TestMaker.new(title)
+	function TestMaker:new(title)
 		local testMaker = {}
 
 		testMaker.functions = {}
 		testMaker.functionCount = 0
 		testMaker.title = title
 
-		return setmetatable(testMaker, TestMaker)
+		return setmetatable(testMaker, _TestMaker)
 	end
 
 	return { default = TestMaker}

@@ -37,6 +37,8 @@ return function(import, pm)
   local EventValidationReport = this.import("EventValidationReport")
   local ConnectionInstance = this.import("ConnectionInstance")
 
+	local withDotMethod = import("@Util/withDotMethod")
+
   -------------------------
   --- Localized globals ---
   -------------------------
@@ -81,7 +83,7 @@ return function(import, pm)
     event._propagating = true
 
     -- fire custom internal dispatcher
-    local validationReport = dispatcher:fire(payload__original)
+    local validationReport = dispatcher.fire(payload__original)
 
     -- fire roblox wait signal
     event._rbxYieldSignal:Fire(unpack(payload__original.args or {}))
@@ -98,15 +100,14 @@ return function(import, pm)
     end
 
     -- conclude event propagation state
-    event:stopPropagating()
+    event.stopPropagating()
     return validationReport
   end
 
   -------------------------
   --- CustomEvent API ---
   -------------------------
-  local EventSignal = {}
-  EventSignal.__index = EventSignal
+  local EventSignal, __EventSignal = withDotMethod()
 
   function EventSignal:getValidationReport(headers)
     local settings = headers or self.settings
@@ -116,41 +117,41 @@ return function(import, pm)
 
     -- special case event overrides
     if (settings.withValidation == false) then
-      report:addReason(DispatchStatusType.DispatchOverride)
+      report.addReason(DispatchStatusType.DispatchOverride)
     end
 
     if (#report.reasons > 0) then
-      report:setResult(EventValidationStatus.Successful)
+      report.setResult(EventValidationStatus.Successful)
       return report
     end
 
     if (settings.throwRejection) then
-      report:addReason(settings.throwRejection)
-      report:setResult(EventValidationStatus.Rejected)
+      report.addReason(settings.throwRejection)
+      report.setResult(EventValidationStatus.Rejected)
       return report
     end
 
     if (self.settings.dispatchQueueEnabled and not self._hasBeenConnectedBefore) then
-      report:addReason(DispatchStatusType.DispatchQueued)
+      report.addReason(DispatchStatusType.DispatchQueued)
     end
 
     -- event dispatch validation
-    if (self:isDisabled()) then
-      report:addReason(DispatchStatusType.Disabled)
+    if (self.isDisabled()) then
+      report.addReason(DispatchStatusType.Disabled)
     end
 
     if #self._connections == 0 and settings.requiresConnection then
-      report:addReason(DispatchStatusType.NoConnection)
+      report.addReason(DispatchStatusType.NoConnection)
     end
 
     if (analytics.dispatches.successful >= settings.dispatchLimit) then
-      report:addReason(DispatchStatusType.DispatchLimitReached)
+      report.addReason(DispatchStatusType.DispatchLimitReached)
     end
 
     -- update final dispatch report
     if (#report.reasons == 0) then
-      report:addReason(DispatchStatusType.Successful)
-      report:setResult(EventValidationStatus.Successful)
+      report.addReason(DispatchStatusType.Successful)
+      report.setResult(EventValidationStatus.Successful)
     end
 
     return report
@@ -182,7 +183,7 @@ return function(import, pm)
 
   function EventSignal:connectAsync(options)
     options.async = true
-    self:connect(options)
+    self.connect(options)
   end
 
   function EventSignal:dispatch(options)
@@ -191,13 +192,13 @@ return function(import, pm)
   end
 
   function EventSignal:fire(...) 
-    return self:dispatch({
+    return self.dispatch({
       args = {...}
     })
   end
 
   function EventSignal:fireAll(...)
-    return self:dispatch({
+    return self.dispatch({
       args = {...},
       headers__global = {
         dispatchChildren = true
@@ -206,7 +207,7 @@ return function(import, pm)
   end
 
   function EventSignal:fireAsync(...)
-    return self:dispatch({
+    return self.dispatch({
       args = {...},
       headers__local = {
         async = true
@@ -215,7 +216,7 @@ return function(import, pm)
   end
 
   function EventSignal:fireDescendantsOnly(...)
-    return self:dispatch({
+    return self.dispatch({
       args = {...},
       headers__local = {
         dispatchSelf = false,
@@ -275,7 +276,7 @@ return function(import, pm)
   function EventSignal:disconnect(options)
     options = getDefaultOptions(options)
 
-    self:queryEventConnections(options, function(connections, index, connection)
+    self.queryEventConnections(options, function(connections, index, connection)
       table.remove(connections, index)
     end)
   end
@@ -283,8 +284,8 @@ return function(import, pm)
   function EventSignal:disconnectAll(options)
     options = getDefaultOptions(options)
 
-    self:queryDescendantEvents(function(event)
-      event:disconnect(options)
+    self.queryDescendantEvents(function(event)
+      event.disconnect(options)
     end)
   end
 
@@ -310,11 +311,11 @@ return function(import, pm)
   end
 
   function EventSignal:isEnabled()
-    return not (self:isDisabled())
+    return not (self.isDisabled())
   end
 
   function EventSignal:isActive()
-    local report = self:getValidationReport()
+    local report = self.getValidationReport()
     return report.result == EventValidationStatus.Successful
   end
 
@@ -359,7 +360,7 @@ return function(import, pm)
     end
   end
 
-  function EventSignal.new(options)
+  function EventSignal:new(options)
     options = options or {
       parent = nil,
       settings = {},
@@ -373,7 +374,7 @@ return function(import, pm)
     local metadata = options.metadata or {}
     local childEvents = options.childEvents or {}
 
-    local event = setmetatable({}, EventSignal)
+    local event = setmetatable({}, __EventSignal)
 
     event._childEvents = childEvents
     event._id = UUID()
@@ -437,7 +438,7 @@ return function(import, pm)
       event.settings[key] = value
     end
 
-    event:setParent(parentEvent)
+    event.setParent(parentEvent)
     return event
   end
 

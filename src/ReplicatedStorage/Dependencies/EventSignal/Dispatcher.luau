@@ -1,9 +1,9 @@
 
 return function(import, pm)
 	local EventValidationStatus = import("../@Enums/@EventSignal/EventValidationStatus*")
+	local withDotMethod = import("@Util/withDotMethod")
 
-	local Dispatcher = {}
-	Dispatcher.__index = Dispatcher
+	local Dispatcher, _Dispatcher = withDotMethod()
 
 	function Dispatcher:execute(payload__local, settings__localEvent, eventValidationReport)
 		-- if catalyst event is no longer propagating, exit the event cycle
@@ -13,7 +13,7 @@ return function(import, pm)
 		local event = payload__local.event
 		local args = payload__local.args
 
-		eventValidationReport = event:getValidationReport(settings__localEvent)
+		eventValidationReport = event.getValidationReport(settings__localEvent)
 
 		-- event data
 		local analytics = event.analytics
@@ -29,7 +29,7 @@ return function(import, pm)
 				for index = 1, #connections do
 					local connection = connections[index]
 
-					if connection:isActive() and self.catalyst._propagating then
+					if connection.isActive() and self.catalyst._propagating then
 
 						-- TODO: add a staticArgs table to send back to the handler function which contains
 						-- the catalyst event, along with more verbose information
@@ -63,7 +63,7 @@ return function(import, pm)
 
 					local childEvent = childEvents[index]
 
-					self:fire({ 
+					self.fire({ 
 						event = childEvent,
 						args = args,
 					})
@@ -77,7 +77,7 @@ return function(import, pm)
 			end
 
 			if (settings__localEvent.dispatchParent or self.catalyst.settings.dispatchAscendants) then
-				self:fire({
+				self.fire({
 					event = parentEvent,
 					args = args,
 					headers__local = {
@@ -101,7 +101,7 @@ return function(import, pm)
 
 					local linkedEvent = linkedEvents[index]
 
-					self:fire({
+					self.fire({
 						event = linkedEvent,
 						args = args
 					})
@@ -122,13 +122,13 @@ return function(import, pm)
 
 		-- fire end of dispatch callbacks. these will run before the dispatch handlers
 		if eventValidationReport.result == EventValidationStatus.Successful then
-			event:executeDispatchSuccess(eventValidationReport.reasons, event)
+			event.executeDispatchSuccess(eventValidationReport.reasons, event)
 			analytics.dispatches.successful += 1
 
 			executeEvent()
 
 		elseif eventValidationReport.result == EventValidationStatus.Rejected then
-			event:executeDispatchFailed(eventValidationReport.reasons, event)
+			event.executeDispatchFailed(eventValidationReport.reasons, event)
 		end
 
 		return eventValidationReport
@@ -181,11 +181,11 @@ return function(import, pm)
 		end
 
 		-- execute the dispatch 
-		return self:execute(payload__local, settings__localEvent)
+		return self.execute(payload__local, settings__localEvent)
 	end
 
-	function Dispatcher.new(payload__original)
-		local dispatcher = setmetatable({}, Dispatcher)
+	function Dispatcher:new(payload__original)
+		local dispatcher = setmetatable({}, _Dispatcher)
 
 		dispatcher.blacklist = {}
 		dispatcher.catalyst = payload__original.event
@@ -194,13 +194,13 @@ return function(import, pm)
 		return dispatcher
 	end
 
-	function Dispatcher.onDispatchFailed(dispatchStatus, event)
+	function Dispatcher:onDispatchFailed(dispatchStatus, event)
 		if (event.settings.printDispatchStatus) then
 			print("Dispatch rejected for event ["..event.name.."]: ", dispatchStatus)
 		end
 	end
 
-	function Dispatcher.onDispatchSuccess(dispatchStatus, event)
+	function Dispatcher:onDispatchSuccess(dispatchStatus, event)
 		if (event.settings.printDispatchStatus) then
 			print("Dispatch succeeded for event ["..event.name.."]: ", dispatchStatus)
 		end

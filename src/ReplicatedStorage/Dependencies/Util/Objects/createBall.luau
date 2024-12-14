@@ -1,7 +1,7 @@
 
 
 return function()
-  local getBasePart = require(script.Parent.createBall)()
+  local getBasePart = require(script.Parent.createPart)()
 
   local function getBall(parent)
     local part = getBasePart()

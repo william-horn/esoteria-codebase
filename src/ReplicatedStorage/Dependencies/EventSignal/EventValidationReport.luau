@@ -1,9 +1,9 @@
 
 return function(import)
 	local EventValidationStatus = import("../@Enums/@EventSignal/EventValidationStatus*")
+	local withDotMethod = import("@Util/withDotMethod")
 
-	local EventValidationReport = {}
-	EventValidationReport.__index = EventValidationReport
+	local EventValidationReport, _EventValidationReport = withDotMethod()
 
 	function EventValidationReport:hasDispatchStatus(dispatchStatusType)
 		for index = 1, #self.reasons do
@@ -24,8 +24,8 @@ return function(import)
 		self.result = eventValidationStatus
 	end
 
-	function EventValidationReport.new(result)
-		local evr = setmetatable({}, EventValidationReport)
+	function EventValidationReport:new(result)
+		local evr = setmetatable({}, _EventValidationReport)
 
 		evr.result = result or EventValidationStatus.Rejected
 		evr.reasons = {}
