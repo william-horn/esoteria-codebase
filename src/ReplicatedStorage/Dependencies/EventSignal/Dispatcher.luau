@@ -206,5 +206,7 @@ return function(import, pm)
 		end
 	end
 
-	return Dispatcher
+	return {
+		default = Dispatcher
+	}
 end

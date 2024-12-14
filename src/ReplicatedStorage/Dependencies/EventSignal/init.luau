@@ -24,6 +24,7 @@ return function(import, pm)
   --- Imports ---
   ---------------
 	local enums = pm.from("../Enums/EventSignal")
+	local this = pm.from(script)
 
   local UUID = import("@Util/uuid")
   local CustomType = import("../@Enums/CustomType*")
@@ -32,9 +33,9 @@ return function(import, pm)
   local EventValidationStatus = enums.import("EventValidationStatus*")
   local EventStateType = enums.import("EventStateType*")
 
-  local Dispatcher = require(script.Dispatcher)
-  local EventValidationReport = require(script.EventValidationReport)
-  local ConnectionInstance = require(script.ConnectionInstance)
+  local Dispatcher = this.import("Dispatcher")
+  local EventValidationReport = this.import("EventValidationReport")
+  local ConnectionInstance = this.import("ConnectionInstance")
 
   -------------------------
   --- Localized globals ---

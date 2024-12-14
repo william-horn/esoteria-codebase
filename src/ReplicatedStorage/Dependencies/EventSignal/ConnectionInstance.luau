@@ -31,5 +31,7 @@ return function(import)
 		return connection
 	end
 
-	return Connection
+	return {
+		default = Connection
+	}
 end

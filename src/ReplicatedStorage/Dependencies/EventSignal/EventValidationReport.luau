@@ -33,5 +33,7 @@ return function(import)
 		return evr
 	end
 
-	return EventValidationReport
+	return { 
+		default = EventValidationReport
+	}
 end
