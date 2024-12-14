@@ -9,8 +9,10 @@
 	module mimmicks a weak version of CommonJS modules. 
 	
 	TODO: Add warning if multiple instance names exist in a directory
-	TODO: Store and cache import path names. Store first part separetely, then search for the other secondary imports in a lookup table
-	TODO: Before adding the import cache feature, benchmark the current usage of it to compare against the cached version
+	TODO: When Commands module is finished, create import commands such as "$nocache" or "$benchmark"
+
+	DONE - TODO: Store and cache import path names. Store first part separetely, then search for the other secondary imports in a lookup table
+	DONE - Before adding the import cache feature, benchmark the current usage of it to compare against the cached version
 ]]
 
 -------------------------
@@ -36,7 +38,6 @@ local isInstance = require(Path__Dependencies.Util.Types.isInstance)()
 local isModule = require(Path__Dependencies.Util.Types.isModule)()
 local isFunction = require(Path__Dependencies.Util.Types.isFunction)()
 local exists = require(Path__Dependencies.Util.Types.exists)()
---local Commands = require(Path__Dependencies.Commands)().default
 
 --------------------------------
 ---- PACKAGE MANAGER MODULE ---- 
@@ -45,6 +46,21 @@ local exists = require(Path__Dependencies.Util.Types.exists)()
 local PackageManager = {}
 PackageManager._importCalls = 0
 PackageManager._rootDirectory = Path__Dependencies
+
+--[[
+	cachedImportPaths = {
+		[Dependencies] = {
+			["@Util"] = { Util, {
+				["@Types"] = { Types, {} },
+				["@Objects"] = { Objects, {} }
+		},
+
+		["@Table"] = { Child, {} }
+	}
+]]
+
+local cachedImportPaths = {}
+PackageManager._cachedImportPaths = cachedImportPaths
 --PackageManager._importCommands = Commands.new()
 
 --[[
@@ -169,18 +185,18 @@ local function requireDirectory(directory, withoutDefault)
 		a 'default' export inside the return of the module. This is because the module itself
 		is the implied 'default' return value. Thus, why we do _require(module, true) here.
 	]]
-	if (defaultExists and not withoutDefault) then
-		return {
-			module = _require(defaultExport, true),
-			moduleWasRequired = true
-		}
-
-	elseif (not defaultExists and withoutDefault) then
+	if (withoutDefault and not defaultExists) then
 		warn("Directory \"" .. directory.Name .. "\" tried to be required, but it has no default export module. Attempt aborted.")
 
 		return {
 			module = nil,
 			moduleWasRequired = false
+		}
+
+	elseif (defaultExists) then
+		return {
+			module = _require(defaultExport, true),
+			moduleWasRequired = true
 		}
 
 	-- ! error:
@@ -241,7 +257,7 @@ local function requireAllChildDirectories(dir)
 		local requiredDirectory = requireDirectory(child, true)
 
 		if (requiredDirectory.moduleWasRequired) then
-    	package[child.Name] = requiredDirectory.module
+			package[child.Name] = requiredDirectory.module
 		end
 	end
 
@@ -249,15 +265,9 @@ local function requireAllChildDirectories(dir)
 end
 
 local function getReplacedSegment(segment)
-	return segment:gsub("^%.$", "default")
+	segment = segment:gsub("^%.$", "default")
+	return segment
 end
-
--- TODO: This is for returning the module hierarchy with '**' path segment - not implemented yet
--- local function requireAllDescendants(dir)
--- 	local package = {}
-
--- 	return package
--- end
 
 --[[
 	* parsePathSegmentInfo(segment<string>):
@@ -332,75 +342,129 @@ end
 	@return: importResult<DirectoryInstance|table>
 ]]
 local function interpretImportPath(dir, pathname)
-	for segment in pathname:gmatch("[^/]+") do
-		--[[
-			? FYI: 
+	--[[
+		? FYI:
 
-			`isTable(dir)` is used to determine how the rest of the path should be interpreted. If
-			the current directory is a table, then we should be indexing a table for the subsequent
-			path segments. Otherwise, the directory should be an instance.
+		Begin the cache node from the top of the cache tree. For example, if
+		the initial 'dir' is a Dependencies folder, then the initial 
+		cache structure should look like:
+
+		cachedDir = {
+			[Dependencies] = {}
+		}
+	]]
+	local cachedDir = cachedImportPaths[dir]
+
+	if (not cachedDir) then
+		cachedDir = {}
+		cachedImportPaths[dir] = cachedDir
+	end
+
+	-- Begin parsing the pathname
+	for segment in pathname:gmatch("[^/]+") do
+
+		--[[
+			---------------------
+			| # Import caching: | 
+			---------------------
+
+			If a path segment is found in the import cache tree at the current
+			directory, then use that value instead. Otherwise, create a new cache
+			and assign it after 'dir' is determined.
+		]]
+		local cachedSegment = cachedDir[segment]
+
+		if (cachedSegment and cachedSegment[1]) then
+			dir = cachedSegment[1] -- set the directory to the cache
+			cachedDir = cachedSegment[2] -- assign new cache directory
+
+			continue -- skip to the next segment
+		end
+
+		-- new cache object for the current segment - determined at the end of the function
+		local newCache = { nil, {} }
+		cachedDir[segment] = newCache
+
+		--[[
+			--------------------------------
+			| # Directory is NOT a table : | 
+			--------------------------------
+
+			If the current path directory is not a table, then it is inferred to be an 
+			Instance. If it is an instance, then several conditions are checked to determine
+			whether the directory should be indexed for a module, require a module, etc.
 		]]
 		if (not isTable(dir)) then
 			-- Directory HAS NOT been required beyond this point -- 
 			local segmentInfo = parsePathSegmentInfo(segment)
 			local child = dir:FindFirstChild(segmentInfo.parsedSegment)
 
-			-- Escape requiring a module with '@'
-			if (segmentInfo.withoutRequire and child) then
-				dir = child
-				continue
-			end
-
-			-- Travel back a directory using '..'
+			-- If segment is back directory selector "../"
 			if (segmentInfo.isBackDirectory and dir.Parent) then
 				dir = dir.Parent
-				continue
 
 			-- ! error:
 			-- If path segment is a back directory but the next directory up doesn't exist
 			elseif (segmentInfo.isBackDirectory) then
 				error("Cannot cd to parent of: \"" .. dir.Name .. "\" (parent does not exist)", 2)
-			end
 
-			-- wild card "*"
-			if (segmentInfo.isAllChildren) then
+			-- If segment is wildcard selector "*"
+			elseif (segmentInfo.isAllChildren) then
 				dir = requireAllChildDirectories(dir)
-				continue
-			end
 
 			-- ! error:
 			-- If the child retrieved per the path segment does not exist in the directory
-			if (not child) then
+			elseif (not child) then
 				error("Import failed. Could not find path segment: \"" .. segmentInfo.parsedSegment .. "\" in directory: \"" .. dir.Name .."\"", 2)
-			end
 
-			local requiredDirectory = requireDirectory(child, segmentInfo.withoutDefault)
+			-- If segment ignores requiring using the "@" prefix
+			elseif (not segmentInfo.withoutRequire) then
+				local requiredDirectory = requireDirectory(child, segmentInfo.withoutDefault)
+
+				-- ! error:
+				-- The required directory failed to locate and require a module. This typically
+				-- happens if you try to require a directory that has no default module, with the
+				-- "withoutDefault" selector: "folder*"
+				if (not requiredDirectory.moduleWasRequired) then
+					error("Import failed. The directory \"" .. child.Name .. "\" does not contain a module to require.")
+				end
+
+				dir = requiredDirectory.module
+
+			-- If all other conditions failed, then the directory can be indexed with the path segment.
+			-- "child" is inferred to exist at this point, due to previous elseif conditions
+			else
+				dir = child
+			end
+		
+		--[[
+			----------------------------
+			| # Directory IS a table : | 
+			----------------------------
+
+			If directory is not an Instance, then it is inferred to be a table. In this case, set
+			the next directory equal to whatever the segment index is.
+		]]
+		else
+			-- filter the segment for any replacements needed
+			segment = getReplacedSegment(segment)
+
+			-- Directory HAS been required beyond this point --
+			if (exists(dir[segment])) then
+				dir = dir[segment]
+				continue
 
 			-- ! error:
-			-- The required directory failed to locate and require a module.
-			if (not requiredDirectory.moduleWasRequired) then
-				error("Import failed. The directory \"" .. child.Name .. "\" does not contain a module to require.")
+			-- If path segment does not exist in directory table
+			else
+				error("Path segment \"" .. segment .. "\" does not exist in module table", 2)
 			end
-
-			dir = requiredDirectory.module
-			continue
 		end
 
-		-- filter the segment for any replacements needed
-		segment = getReplacedSegment(segment)
-
-		-- Directory HAS been required beyond this point --
-		if (exists(dir[segment])) then
-			dir = dir[segment]
-			continue
-
-		-- ! error:
-		-- If path segment does not exist in directory table
-		else
-			error("Path segment \"" .. segment .. "\" does not exist in module table", 2)
-		end
+		newCache[1], cachedDir = dir, newCache[2]
 	end
 
+	-- cachedImportPaths[initialDir][pathname] = dir
 	return dir
 end
 
