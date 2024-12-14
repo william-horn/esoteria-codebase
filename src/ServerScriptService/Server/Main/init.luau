@@ -1,28 +1,29 @@
 
 return function(import, pm)
 
-	local d = pm.from(script)
-	print(d)
-	local EventSignal = import("EventSignal")
+	local withDotMethod = import("@Util/withDotMethod")
 
-	local e = EventSignal.new()
+	local t, _t = withDotMethod()
 
-	e.connect({
-		handler = function()
-			print("fired")
-		end
-	})
+	function t:new()
+		return setmetatable({}, getmetatable(self))
+	end
 
+	function t:getFirst(first)
+		local t2 = self.new()
+		t2.added = { index = first }
 
-	e.fire()
+		return t2
+	end 
 
-	task.wait(1)
+	function t:getSecond(name)
+		return self.added[name]
+	end
 
-	e.fire()
+	local o = t.new()
 
-	-- object.getName = nil
-	-- Class.getName = nil
-	-- Class.new = nil
-	-- Class = nil
+	print(o.getFirst("something").getSecond("index"))
 
+	print(t.getFirst("idk"))
+	print(o.getFirst == t.getFirst)
 end
