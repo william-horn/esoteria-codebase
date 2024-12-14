@@ -153,17 +153,18 @@ return function(import)
 
 			if (record.finalStatus[TestStatus.Indeterminate] or record.lastStatus == TestStatus.Failed) then
 				final.failed += 1
-				final.allPassed = false
+				-- final.allPassed = false
 				final.failedAttempts[attempt.name] = record
 				record:addError(TestStatus.Failed, "Function result did not meet expectations")
 
 			elseif (record.lastStatus == TestStatus.Success) then
 				final.passed += 1
-				final.allPassed = true
+				-- final.allPassed = true
 				record.errorMessages = nil
 			end
 
 			final.passPercentage = final.passed/#testData.attempts
+			final.allPassed = final.passPercentage == 1
 
 		end
 
