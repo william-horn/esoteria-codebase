@@ -55,9 +55,10 @@
 return function(import)
 	local isNumber = import("@Util/@Types/isNumber")
 	local getVacantIndex = import("@Util/getVacantIndex")
+	local withDotMethod = import("@Util/withDotMethod")
 	
-	local StringEscaper = {}
-	StringEscaper.__index = StringEscaper
+	local StringEscaper, _StringEscaper = withDotMethod()
+	-- StringEscaper.__index = StringEscaper
 
 	--[[
 		StringEscaper.escapeMagicChars(text<string>):
@@ -69,8 +70,9 @@ return function(import)
 		@returns:
 			<string>: the escaped text
 	]]
-	function StringEscaper.escapeMagicChars(text)
-		return text:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%1")
+	function StringEscaper:escapeMagicChars(text)
+		text = text:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%1")
+		return text
 	end
 
 	--[[
@@ -85,6 +87,7 @@ return function(import)
 			<string>: the escaped text
 	]]
 	function StringEscaper:escape(text)
+		print("text: ", text)
 		for id, stringData in next, self.escaped do
 			text = text:gsub(stringData.escapePattern, stringData.encoded)
 		end
@@ -129,7 +132,7 @@ return function(import)
 		if (stringToId[text]) then return end
 		
 		local id = getVacantIndex(stringData)
-		local noMagicText = StringEscaper.escapeMagicChars(text)
+		local noMagicText = self.escapeMagicChars(text)
 
 		stringData[id] = {
 			encoded = "\1" .. id .. "\1",
@@ -180,10 +183,10 @@ return function(import)
 		@returns:
 			<StringEscaper>: the StringEscaper object
 	]]
-	function StringEscaper.new(prefix, escaped)
+	function StringEscaper:new(prefix, escaped)
 		escaped = table.clone(escaped or {})
 
-		local stringEscaper = setmetatable({}, StringEscaper)
+		local stringEscaper = setmetatable({}, _StringEscaper)
 
 		--[[
 			dict that maps encoded/decoded string segments
@@ -207,11 +210,13 @@ return function(import)
 		stringEscaper.prefix = prefix
 
 		for index = 1, #escaped do
-			stringEscaper:add(escaped[index])
+			stringEscaper.add(escaped[index])
 		end
 		
 		-- include the escape prefix in with the strings to escape
-		stringEscaper:add(prefix)
+		stringEscaper.add(prefix)
+
+		print("stringEscaper: ", stringEscaper)
 		return stringEscaper
 	end
 
