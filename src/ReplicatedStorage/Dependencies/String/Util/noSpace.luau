@@ -7,7 +7,8 @@ return function()
 		@returns: <string> trimmedStr
 	]]
 	local function noSpace(str)
-		return str:gsub("%s+", "")
+		str = str:gsub("%s+", "")
+		return str
 	end
 	
 	return noSpace

@@ -21,7 +21,8 @@ return function()
 		-Will
 	]]
 	local function toSingleSpace(str)
-		return str:gsub("%s+", " ")
+		str = str:gsub("%s+", " ")
+		return str
 	end
 	
 	return toSingleSpace

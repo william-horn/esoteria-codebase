@@ -2,28 +2,62 @@
 return function(import, pm)
 	local TestMaker = import("@Dev/TestMaker")
 	local types = import("@Util/@Types/*")
+	local util = import("@String/@Util/*")
 
 	local StringTest = TestMaker.new("String Util Test")
 
-	local x = {}
-
-	local function thing(a)
-		table.insert(x, a)
-		return x
-	end
-
 	StringTest:add({
-		try = thing,
-		name = "thing",
-		class = {},
+		try = util.trimLeft,
+		name = "trimLeft",
 		attempts = {
-			{args = {1}, expect = {{1}}, iterations = 4},
-			-- {attempt = "Test 2", args = {5}, expect = {false}, iterations = 100, error = nil},
-			-- {attempt = "Test 3", args = {false}, expect = {false}, iterations = 100, error = nil},
-		},
+			{args = {"  a"}, expect = {"a"}},
+			{args = {"  a  "}, expect = {"a  "}},
+			{args = {"a "}, expect = {"a "}}
+		}
 	})
 
-	local result = StringTest:run(thing)
+	StringTest:add({
+		try = util.trimRight,
+		name = "trimRight",
+		attempts = {
+			{args = {"  a"}, expect = {"  a"}},
+			{args = {"  a "}, expect = {"  a"}},
+			{args = {"a   "}, expect = {"a"}},
+		}
+	})
 
-	print("Result: ", result)
+	StringTest:add({
+		try = util.trimAround,
+		name = "trimAround",
+		attempts = {
+			{args = {"  a  "}, expect = {"a"}},
+			{args = {"  a "}, expect = {"a"}},
+			{args = {"a  "}, expect = {"a"}},
+			{args = {"a"}, expect = {"a"}},
+		}
+	})
+
+	StringTest:add({
+		try = util.toSingleSpace,
+		name = "toSingleSpace",
+		attempts = {
+			{args = {"  a  "}, expect = {" a "}},
+			{args = {"  a "}, expect = {" a "}},
+			{args = {"a  "}, expect = {"a "}},
+			{args = {"a"}, expect = {"a"}},
+			{args = {"a   b"}, expect = {"a b"}},
+		}
+	})
+
+	StringTest:add({
+		try = util.splitWith,
+		name = "splitWith",
+		attempts = {
+			{args = {"a b c", " "}, expect = {{"a", "b", "c"}}},
+			{args = {"a b c", "%s", { usePatterns = true }}, expect = {{"a", "b", "c"}}},
+			{args = {"a123b123cd", "%d+", { usePatterns = true }}, expect = {{"a", "b", "c"}}},
+		}
+	})
+
+	StringTest:runAll()
 end

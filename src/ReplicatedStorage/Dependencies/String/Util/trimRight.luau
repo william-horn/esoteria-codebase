@@ -6,7 +6,8 @@ return function()
 		@returns: <string> trimmedStr
 	]]
 	local function trimRight(str)
-		return str:gsub("%s+$", "")
+		str = str:gsub("%s+$", "")
+		return str
 	end
 	
 	return trimRight

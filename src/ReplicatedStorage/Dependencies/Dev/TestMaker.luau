@@ -3,6 +3,28 @@
 	@written: 12/13/2024
 
 	A test class to test and benchmark code
+
+	Test example:
+
+		local StringTest = TestMaker.new("String Tests")
+
+		StringTest:add({
+			try = function,
+			name = "function name",
+			object(optional) = <Class>,
+			attempts = {
+				{name(optional) = "attempt name", args = {...}, expect = {...}, iterations(optional) = 1},
+				...
+			}
+		})
+
+		StringTest:runAll()
+
+	? If the function being tested is a method, you can pass the object of the method in the "object" field.
+
+	? 'iterations' defaults to 1
+
+	? 'name' defaults to 'Attempt: #'
 ]]
 
 return function(import)
@@ -21,24 +43,28 @@ return function(import)
 
 	local function createAttemptRecord(attempt)
 		local record = {}
+
 		record.lastStatus = nil
 		record.runtime = 0
 		record.iterations = attempt.iterations
 		record.errorMessages = {}
 
-		local mt = {}
-		mt.__index = mt
-
-		function mt:addError(status, message)
-			self.errorMessages[status] = message
-		end
-
-		return setmetatable(record, mt)
+		return setmetatable(record, {
+			__index = function(self, k)
+				if (k == "addError") then
+					return function(_, status, message)
+						self.errorMessages[status] = message
+					end
+				else
+					return nil
+				end
+			end
+		})
 	end
 
 	function TestMaker:add(testData)
 		testData.name = testData.name or "Unnamed Function"
-		testData.class = isTable(testData.class) and testData.class
+		testData.object = isTable(testData.object) and testData.object
 
 		local usedNames = {}
 
@@ -57,6 +83,7 @@ return function(import)
 		end
 
 		self.functions[testData.try] = testData
+		self.functionCount += 1
 	end 
 
 	function TestMaker:run(func)
@@ -66,6 +93,7 @@ return function(import)
 		final.passed = 0
 		final.failed = 0
 		final.passPercentage = 0
+		final.failedAttempts = {}
 		final.analysis = {}
 
 		print("Trying \"" .. testData.name .. "\"...")
@@ -75,8 +103,8 @@ return function(import)
 
 			local returns 
 
-			if (testData.class) then
-				returns = { testData.try(testData.class, unpack(attempt.args)) }
+			if (testData.object) then
+				returns = { testData.try(testData.object, unpack(attempt.args)) }
 			else
 				returns = { testData.try(unpack(attempt.args)) }
 			end
@@ -123,35 +151,80 @@ return function(import)
 				end
 			end
 
-			if (record.finalStatus[TestStatus.Indeterminate]) then
+			if (record.finalStatus[TestStatus.Indeterminate] or record.lastStatus == TestStatus.Failed) then
 				final.failed += 1
+				final.allPassed = false
+				final.failedAttempts[attempt.name] = record
+				record:addError(TestStatus.Failed, "Function result did not meet expectations")
 
 			elseif (record.lastStatus == TestStatus.Success) then
 				final.passed += 1
-
-			elseif (record.lastStatus == TestStatus.Failed) then
-				final.failed += 1
+				final.allPassed = true
+				record.errorMessages = nil
 			end
 
-			-- re-format status enums to their display name aliases for the developer
-			for status in next, record.finalStatus do
-				record.finalStatus[status] = testStatusAliases[status]
-			end
-
-			record.lastStatus = testStatusAliases[record.lastStatus]
-			--
+			final.passPercentage = final.passed/#testData.attempts
 
 		end
 
-		final.passPercentage = (math.floor(final.passed/#testData.attempts*100)) .. "%"
-
 		return final
+	end
+
+	function TestMaker:runAll(withoutPrint)
+		local header = "Running tests for: \"" .. self.title .. "\""
+		local line = string.rep("-", #header)
+
+		print(line)
+		print(header)
+		print(line)
+
+		local results = {}
+		results.passPercentage = 0
+		results.functionsPassed = 0
+		results.functionsFailed = 0
+
+		local functionsTested = {}
+		results.functionsTested = functionsTested
+
+		local failedData = {}
+
+		for f, data in next, self.functions do
+			local result = self:run(f)
+			functionsTested[data.name] = result
+
+			if (result.allPassed) then
+				results.functionsPassed += 1
+			else
+				results.functionsFailed += 1
+				failedData[data.name] = result
+			end
+		end
+
+		results.passPercentage = results.functionsPassed/self.functionCount
+
+		print(line)
+
+		if (not withoutPrint) then
+			print("Results: |")
+			print(line)
+			print("Passed: ", results.functionsPassed)
+			print("Failed: ", results.functionsFailed)
+			print("Pass percentage: ", math.floor(results.passPercentage*100) .. "%")
+			print(line)
+			print("Failed functions: ", failedData)
+			print(line)
+			print("Data: ", results)
+			print(line)
+		end
+
+		return results
 	end
 
 	function TestMaker.new(title)
 		local testMaker = {}
 
 		testMaker.functions = {}
+		testMaker.functionCount = 0
 		testMaker.title = title
 
 		return setmetatable(testMaker, TestMaker)
