@@ -43,7 +43,7 @@ local withDotMethod = require(Path__Dependencies.Util.withDotMethod)()
 ---- PACKAGE MANAGER MODULE ---- 
 --------------------------------
 
-local PackageManager, _PackageManager = withDotMethod()
+local PackageManager = withDotMethod()
 
 PackageManager._importCalls = 0
 PackageManager._rootDirectory = Path__Dependencies
@@ -53,7 +53,7 @@ PackageManager.global = {
 	
 	-- quick folder refs
 	packages = Path__Dependencies,
-	enums = ReplicatedStorage.Enums,
+	Enums = ReplicatedStorage.Enums,
 	network = ReplicatedStorage.Network,
 	
 	-- quick ROBLOX service refs

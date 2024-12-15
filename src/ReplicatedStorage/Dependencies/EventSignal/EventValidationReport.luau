@@ -1,11 +1,12 @@
 
 return function(import)
-	local enums = game.ReplicatedStorage.Enums
-	local EventValidationStatus = enums.EventSignal.EventValidationStatus
+	local Enums = game.ReplicatedStorage.Enums
+	local EventValidationStatus = Enums.EventSignal.EventValidationStatus
 
-	local withDotMethod = import("@Util/withDotMethod")
+	-- local withDotMethod = import("@Util/withDotMethod")
 
-	local EventValidationReport, _EventValidationReport = withDotMethod()
+	local EventValidationReport = {}
+	EventValidationReport.__index = EventValidationReport
 
 	function EventValidationReport:hasDispatchStatus(dispatchStatusType)
 		for index = 1, #self.reasons do
@@ -26,8 +27,8 @@ return function(import)
 		self.result = eventValidationStatus
 	end
 
-	function EventValidationReport:new(result)
-		local evr = setmetatable({}, _EventValidationReport)
+	function EventValidationReport.new(result)
+		local evr = setmetatable({}, EventValidationReport)
 
 		evr.result = result or EventValidationStatus.Rejected
 		evr.reasons = {}

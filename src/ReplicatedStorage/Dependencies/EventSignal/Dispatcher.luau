@@ -1,11 +1,12 @@
 
 return function(import, global, pm)
-	local enums = game.ReplicatedStorage.Enums
-	local EventValidationStatus = enums.EventSignal.EventValidationStatus
+	local Enums = game.ReplicatedStorage.Enums
+	local EventValidationStatus = Enums.EventSignal.EventValidationStatus
 	
-	local withDotMethod = import("@Util/withDotMethod")
+	-- local withDotMethod = import("@Util/withDotMethod")
 
-	local Dispatcher, _Dispatcher = withDotMethod()
+	local Dispatcher = {}
+	Dispatcher.__index = Dispatcher
 
 	function Dispatcher:execute(payload__local, settings__localEvent, eventValidationReport)
 		-- if catalyst event is no longer propagating, exit the event cycle
@@ -15,7 +16,7 @@ return function(import, global, pm)
 		local event = payload__local.event
 		local args = payload__local.args
 
-		eventValidationReport = event.getValidationReport(settings__localEvent)
+		eventValidationReport = event:getValidationReport(settings__localEvent)
 
 		-- event data
 		local analytics = event.analytics
@@ -31,7 +32,7 @@ return function(import, global, pm)
 				for index = 1, #connections do
 					local connection = connections[index]
 
-					if connection.isActive() and self.catalyst._propagating then
+					if connection:isActive() and self.catalyst._propagating then
 
 						-- TODO: add a staticArgs table to send back to the handler function which contains
 						-- the catalyst event, along with more verbose information
@@ -65,7 +66,7 @@ return function(import, global, pm)
 
 					local childEvent = childEvents[index]
 
-					self.fire({ 
+					self:fire({
 						event = childEvent,
 						args = args,
 					})
@@ -79,7 +80,7 @@ return function(import, global, pm)
 			end
 
 			if (settings__localEvent.dispatchParent or self.catalyst.settings.dispatchAscendants) then
-				self.fire({
+				self:fire({
 					event = parentEvent,
 					args = args,
 					headers__local = {
@@ -103,7 +104,7 @@ return function(import, global, pm)
 
 					local linkedEvent = linkedEvents[index]
 
-					self.fire({
+					self:fire({
 						event = linkedEvent,
 						args = args
 					})
@@ -183,11 +184,11 @@ return function(import, global, pm)
 		end
 
 		-- execute the dispatch 
-		return self.execute(payload__local, settings__localEvent)
+		return self:execute(payload__local, settings__localEvent)
 	end
 
-	function Dispatcher:new(payload__original)
-		local dispatcher = setmetatable({}, _Dispatcher)
+	function Dispatcher.new(payload__original)
+		local dispatcher = setmetatable({}, Dispatcher)
 
 		dispatcher.blacklist = {}
 		dispatcher.catalyst = payload__original.event
@@ -196,13 +197,13 @@ return function(import, global, pm)
 		return dispatcher
 	end
 
-	function Dispatcher:onDispatchFailed(dispatchStatus, event)
+	function Dispatcher.onDispatchFailed(dispatchStatus, event)
 		if (event.settings.printDispatchStatus) then
 			print("Dispatch rejected for event ["..event.name.."]: ", dispatchStatus)
 		end
 	end
 
-	function Dispatcher:onDispatchSuccess(dispatchStatus, event)
+	function Dispatcher.onDispatchSuccess(dispatchStatus, event)
 		if (event.settings.printDispatchStatus) then
 			print("Dispatch succeeded for event ["..event.name.."]: ", dispatchStatus)
 		end

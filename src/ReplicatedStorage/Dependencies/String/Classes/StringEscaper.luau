@@ -55,10 +55,11 @@
 return function(import)
 	local isNumber = import("@Util/@Types/isNumber")
 	local getVacantIndex = import("@Table/@Dictionary/getVacantIndex")
-	local withDotMethod = import("@Util/withDotMethod")
+	-- local withDotMethod = import("@Util/withDotMethod")
 	
-	local StringEscaper, _StringEscaper = withDotMethod()
-	-- StringEscaper.__index = StringEscaper
+	-- local StringEscaper, _StringEscaper = withDotMethod()
+	local StringEscaper = {}
+	StringEscaper.__index = StringEscaper
 
 	--[[
 		StringEscaper.escapeMagicChars(text<string>):
@@ -132,7 +133,7 @@ return function(import)
 		if (stringToId[text]) then return end
 		
 		local id = getVacantIndex(stringData)
-		local noMagicText = self.escapeMagicChars(text)
+		local noMagicText = self:escapeMagicChars(text)
 
 		stringData[id] = {
 			encoded = "\1" .. id .. "\1",
@@ -186,7 +187,7 @@ return function(import)
 	function StringEscaper:new(prefix, escaped)
 		escaped = table.clone(escaped or {})
 
-		local stringEscaper = setmetatable({}, _StringEscaper)
+		local stringEscaper = setmetatable({}, StringEscaper)
 
 		--[[
 			dict that maps encoded/decoded string segments
@@ -210,13 +211,11 @@ return function(import)
 		stringEscaper.prefix = prefix
 
 		for index = 1, #escaped do
-			stringEscaper.add(escaped[index])
+			stringEscaper:add(escaped[index])
 		end
 		
 		-- include the escape prefix in with the strings to escape
-		stringEscaper.add(prefix)
-
-		print("stringEscaper: ", stringEscaper)
+		stringEscaper:add(prefix)
 		return stringEscaper
 	end
 

@@ -7,35 +7,32 @@
 
 return function(import, global, pm) 
 	-- Directories
-	local enums = game.ReplicatedStorage.Enums
-	local networkEnums = enums.Network
+	local Enums = game.ReplicatedStorage.Enums
+	local networkEnums = Enums.Network
 
 	-- Enums
-	local MachineType = enums.MachineType
+	local MachineType = Enums.MachineType
 	local RemoteChannel, Request = networkEnums.RemoteChannel, networkEnums.Request
 	local RemoteValidation = networkEnums.RemoteValidation
 	local RemoteType, ProtocolType = networkEnums.RemoteType, networkEnums.ProtocolType
 
 	-- Dependencies
 	local System, isServer, isClient = import("@System", ".", "isServer", "isClient")
-	local withDotMethod = import("@Util/withDotMethod")
+	-- local withDotMethod = import("@Util/withDotMethod")
 
 	-- Listeners
 	local remoteListeners, remotes = pm.from(script).import("Listeners")
 
 	-- naming aliases
-	local aliases = require(script.Aliases) {
-		MachineType,
-		RemoteType,
-		ProtocolType,
-	}
+	local aliases = require(script.Aliases)
 
 	--[[
 		---------------------
 		| # Network module: |
 		---------------------
 	]]
-	local Network = withDotMethod()
+	-- local Network = withDotMethod()
+	local Network = {}
 
 	function Network:dispatchRemoteTo(settings)
 		local machineType = System.machineType
@@ -53,7 +50,7 @@ return function(import, global, pm)
 			Call the internal remote validator to determine whether or not
 			the remote is eligable to fire.
 		]]
-		local remoteValidationStatus = remoteDispatcher.validate()
+		local remoteValidationStatus = remoteDispatcher:validate()
 
 		if (remoteValidationStatus == RemoteValidation.Rejected) then
 			return warn("Remote cannot be fired")
@@ -64,7 +61,7 @@ return function(import, global, pm)
 	end
 
 	function Network:client_sendTCP(metadata, payload)
-		self.dispatchRemoteTo({
+		self:dispatchRemoteTo({
 			protocolType = ProtocolType.TCP,
 			remoteType = RemoteType.RemoteEvent,
 			remoteChannel = metadata.channel,
@@ -74,7 +71,7 @@ return function(import, global, pm)
 	end
 
 	function Network:server_sendTCP(players, metadata, payload)
-		self.dispatchRemoteTo({
+		self:dispatchRemoteTo({
 			protocolType = ProtocolType.TCP,
 			remoteType = RemoteType.RemoteEvent,
 			remoteChannel = metadata.channel,
@@ -86,10 +83,10 @@ return function(import, global, pm)
 
 	function Network:sendTCP(...)
 		if (isServer()) then
-			self.server_sendTCP(...)
+			self:server_sendTCP(...)
 
 		elseif (isClient()) then
-			self.client_sendTCP(...)
+			self:client_sendTCP(...)
 		end
 	end
 

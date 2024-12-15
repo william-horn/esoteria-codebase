@@ -1,7 +1,7 @@
 
 return function(import, global, pm)
-	local enums = game.ReplicatedStorage.Enums
-	local StringMath = enums.StringMath
+	local Enums = game.ReplicatedStorage.Enums
+	local StringMath = Enums.StringMath
 	
 	local StringEscaper = import("@String/@Classes/StringEscaper")
 	

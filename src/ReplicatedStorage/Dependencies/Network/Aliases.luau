@@ -1,69 +1,70 @@
 
-	--[[
-		--------------------
-		| # Name aliases : |
-		--------------------
-	]]
+--[[
+	--------------------
+	| # Name aliases : |
+	--------------------
+]]
 
-return function(enums)
-	local MachineType, RemoteType, ProtocolType = unpack(enums)
+local Enums = game.ReplicatedStorage.Enums
+local MachineType = Enums.MachineType
+local RemoteType = Enums.Network.RemoteType
+local ProtocolType = Enums.Network.ProtocolType
 
-	local machineTypeToName = {
-		[MachineType.Server] = "Server",
-		[MachineType.Client] = "Client",
-	}
+local machineTypeToName = {
+	[MachineType.Server] = "Server",
+	[MachineType.Client] = "Client",
+}
 
-	local protocolToName = {
-		[ProtocolType.TCP] = "TCP",
-		[ProtocolType.UDP] = "UDP",
-	}
+local protocolToName = {
+	[ProtocolType.TCP] = "TCP",
+	[ProtocolType.UDP] = "UDP",
+}
 
-	local remoteTypeToAPI = {
-		[RemoteType.RemoteEvent] = {
-			[MachineType.Server] = {
-				dispatch = "FireClient",
-				dispatchAll = "FireAllClients",
-				listen = "OnServerEvent",
-			},
-
-			[MachineType.Client] = {
-				dispatch = "FireServer",
-				listen = "OnClientEvent",
-			},
+local remoteTypeToAPI = {
+	[RemoteType.RemoteEvent] = {
+		[MachineType.Server] = {
+			dispatch = "FireClient",
+			dispatchAll = "FireAllClients",
+			listen = "OnServerEvent",
 		},
 
-		[RemoteType.RemoteFunction] = {
-			[MachineType.Server] = {
-				dispatch = "InvokeClient",
-				listen = "OnServerInvoke",
-			},
+		[MachineType.Client] = {
+			dispatch = "FireServer",
+			listen = "OnClientEvent",
+		},
+	},
 
-			[MachineType.Client] = {
-				dispatch = "InvokeServer",
-				listen = "OnClientInvoke",
-			},
+	[RemoteType.RemoteFunction] = {
+		[MachineType.Server] = {
+			dispatch = "InvokeClient",
+			listen = "OnServerInvoke",
 		},
 
-		[RemoteType.Event] = {
-			[MachineType.All] = {
-				dispatch = "Fire",
-				listen = "Event",
-			},
+		[MachineType.Client] = {
+			dispatch = "InvokeServer",
+			listen = "OnClientInvoke",
 		},
+	},
 
-		[RemoteType.Function] = {
-			[MachineType.All] = {
-				dispatch = "Invoke",
-				listen = "OnInvoke",
-			},
+	[RemoteType.Event] = {
+		[MachineType.All] = {
+			dispatch = "Fire",
+			listen = "Event",
 		},
-	}
+	},
 
-	remoteTypeToAPI[RemoteType.UnreliableRemoteEvent] = remoteTypeToAPI[RemoteType.RemoteEvent]
+	[RemoteType.Function] = {
+		[MachineType.All] = {
+			dispatch = "Invoke",
+			listen = "OnInvoke",
+		},
+	},
+}
 
-	return {
-		machineTypeToName = machineTypeToName,
-		protocolToName = protocolToName,
-		remoteTypeToAPI = remoteTypeToAPI,
-	}
-end
+remoteTypeToAPI[RemoteType.UnreliableRemoteEvent] = remoteTypeToAPI[RemoteType.RemoteEvent]
+
+return {
+	machineTypeToName = machineTypeToName,
+	protocolToName = protocolToName,
+	remoteTypeToAPI = remoteTypeToAPI,
+}

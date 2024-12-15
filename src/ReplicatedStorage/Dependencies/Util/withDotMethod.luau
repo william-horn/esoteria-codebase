@@ -2,6 +2,12 @@
 	@author: William J. Horn
 	@written: 12/14/2024
 
+	! --> NOTE:
+		Using dot notation for methods with this function runs about 10x slower
+		for function calls. If you are running method calls in a tight loop for
+		many iterations, or you need to maximize performance, do not use.
+	! <--
+
 	Wrap a table in a new context that enables method calling through dot
 	notation (i.e object.myMethod())
 

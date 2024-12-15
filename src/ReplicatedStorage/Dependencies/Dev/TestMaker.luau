@@ -4,6 +4,8 @@
 
 	A test class to test and benchmark code
 
+	Warning: Ugly code.
+
 	Test example:
 
 		local StringTest = TestMaker.new("String Tests")
@@ -28,8 +30,8 @@
 ]]
 
 return function(import, global, pm)
-	local enums = game.ReplicatedStorage.Enums
-	local TestStatus = enums.TestStatus
+	local Enums = game.ReplicatedStorage.Enums
+	local TestStatus = Enums.TestStatus
 
 	local matchesQuery = import("@Table/matchesQuery")
 	local isTable = import("@Util/@Types/isTable")
