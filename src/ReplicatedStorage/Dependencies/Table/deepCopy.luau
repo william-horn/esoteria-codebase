@@ -2,36 +2,40 @@
 	@author: William
 	@written: 12/15/2024
 
-	Create a tree-like hierarchy table of another nested table. This
-	can also be used to get the hierarchy tree of instance descendants, by
-	doing:
+	Create a tree-like hierarchy table of another nested table with a
+	callback function of options. 
+		
+	Your callback argument does not need to return anything, instead, it 
+	is passed a table of options that have been defined internally. You can
+	modify these options to determine what should happen during the iteration.
 
-		deepCopy(a:GetChildren(), function(_, v)
-				local c = v:GetChildren()
-				return v.Name, #c > 0 and c or v
-		end)
+	? Example, this will ignore any value of "a" in the tree:
 
-	? --> note:
-		If no callback is given, the tree will just be the deep copy of the 
-		table provided.
-	? <--
-
-	? --> note:
-		If the callback returns nil for the key, the deepCopy will stop
-		once it is done finishing it's current cycle.
-	? <--
-
-	? Example of using depth to determine when to stop deep cycling:
-
-		deepCopy(t, function(key, value, depth)
-			if (depth == 2) then
-				return nil, ... <-- key is nil, don't move down another level
+		deepCopy(t, function(got)
+			if (got.value == "a") then
+				got.ignore = true
 			end
-
-			return key, value
 		end)
 
-	? This will stop the next cycle, and the returned table will have a depth of 2
+	If you have not re-assigned the key or value, they will remain as they were.
+
+	# Possible options:
+		? got.terminate
+			- if true, process the other options and break the loop
+		? got.ignore
+			- if true, don't include the current entry in the returned tree
+		? got.treatAsValue
+			- if true, value is implied to be a table, and the table reference will be added to the tree but not iterated over.
+		? got.value
+			- the value at the current iteration
+		? got.key
+			- the key at the current iteration
+
+	# These are included as options but are intended as read-only:
+		? got.depth
+			- the depth of the cycle
+		? got.currentTable
+			- the current table in the cycle
 ]]
 
 return function(import)
@@ -52,25 +56,33 @@ return function(import)
 			queue[#queue] = nil
 
 			for key, value in next, dir do
-				local skipTable = false
+				local got = {
+					key = key,
+					value = value,
+					treatAsValue = false,
+					terminate = false,
+					ignore = false,
+					depth = depth,
+					currentTable = dir
+				}
 
-				if (callback) then
-					local _key, _value = callback(key, value, dir, depth)
+				callback(got)
 
-					if (_key ~= nil) then
-						key, value = _key, _value
-					else
-						skipTable = true
-					end
+				if (got.ignore) then
+					continue
 				end
 
-				if (isTable(value) and not skipTable) then
+				if (isTable(got.value) and not got.treatAsValue) then
 					local newDir = {}
-					treeDir[key] = newDir
-					queue[#queue + 1] = { value, newDir, depth + 1 }
+					treeDir[got.key] = newDir
+					queue[#queue + 1] = { got.value, newDir, depth + 1 }
 
 				else
-					treeDir[key] = value
+					treeDir[got.key] = got.value
+				end
+
+				if (got.terminate) then
+					break
 				end
 			end
 		end

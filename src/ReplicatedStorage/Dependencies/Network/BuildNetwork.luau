@@ -29,11 +29,10 @@ return function(import)
 	end
 
 	local function buildNetwork()
-		local function cycle(key, value, t, depth)
-			if (depth == 4) then
-				local remoteChannelData = 0
-
-				return nil
+		local function cycle(got)
+			if (got.depth == 4) then
+				got.terminate = true
+				return
 			end
 
 			local toEnum = networkDepthMap[depth]

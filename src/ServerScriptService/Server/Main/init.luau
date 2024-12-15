@@ -4,8 +4,22 @@ return function(import, global, pm)
 	-- local withDotMethod = import("@Util/withDotMethod")
 	local deepCopy = import("@Table/deepCopy")
 
-	print(pm.require(game.ReplicatedStorage.Dependencies.Network.BuildNetwork, true))
+	-- print(pm.require(game.ReplicatedStorage.Dependencies.Network.BuildNetwork, true))
 
+	local t = deepCopy(workspace.MasterRoot:GetChildren(), function(got)
+		local c = got.value:GetChildren()
+		local a = #c > 0 and c or got.value
+
+		if (got.depth == 3) then
+			got.terminate = true
+			return 
+		end
+
+		got.key = got.value.Name
+		got.value = a
+	end)
+
+	print("tree: ", t)
 
 	-- local t, _t = withDotMethod()
 

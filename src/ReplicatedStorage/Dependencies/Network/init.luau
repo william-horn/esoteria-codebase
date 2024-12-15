@@ -38,25 +38,14 @@ return function(import, global, pm)
 	function Network:dispatchRemoteTo(settings)
 		local machineType = System.MachineType
 
-		local protocolType = remotes[settings.protocolType] -- TCP/UDP
+		local protocolType = networkTree[settings.protocolType] -- TCP/UDP
 		local fromMachine = protocolType[machineType] -- Server/Client
 		local remoteType = fromMachine[settings.remoteType] -- Events/Functions
 		local remoteDispatcher = remoteType[settings.remoteChannel] -- Remote data
 
-		--[[
-			-----------------------
-			| # Remote validation |
-			-----------------------
-
-			Call the internal remote validator to determine whether or not
-			the remote is eligable to fire.
-		]]
-		local remoteValidationStatus = remoteDispatcher:validate()
-
-		if (remoteValidationStatus == RemoteValidation.Rejected) then
-			return warn("Remote cannot be fired")
-		end
-
+		local remoteValidationStatus = remoteDispatcher:validate({
+			toPlayers = settings.toPlayers
+		})
 
 		return remoteValidationStatus
 	end
@@ -89,6 +78,11 @@ return function(import, global, pm)
 		elseif (isClient()) then
 			self:client_sendTCP(...)
 		end
+	end
+
+	function Network:listen()
+		remoteListeners:listen()
+		return self
 	end
 
 	return {
