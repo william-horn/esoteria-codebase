@@ -1,8 +1,10 @@
 
 return function(import, global, pm)
+	local enums = game.ReplicatedStorage.Enums
+	local StringMath = enums.StringMath
+
 	local this = pm.from(script)
 
-	local StringMath = import("../@Enums/@StringMath/*")
 	local calcOperationGroup = this.import("../calcOperationGroup")
 	local noSpace = this.import("../noSpace")
 	

@@ -1,6 +1,8 @@
 
 return function(import, global, pm)
-	local StringMath = import("../@Enums/@StringMath/*")
+	local enums = game.ReplicatedStorage.Enums
+	local StringMath = enums.StringMath
+	
 	local StringEscaper = import("@String/@Classes/StringEscaper")
 	
 	local doMathOp = require(script.Parent.doMathOp)()

@@ -1,5 +1,5 @@
 --!nocheck
-local PackageManager = require(game.ReplicatedStorage.PackageManager)
+local PackageManager = require(game.ReplicatedStorage.QuickAccess.PackageManager)
 
 local start = os.clock()
 PackageManager.require(script.Main)

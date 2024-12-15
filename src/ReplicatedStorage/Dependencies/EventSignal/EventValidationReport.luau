@@ -1,6 +1,8 @@
 
 return function(import)
-	local EventValidationStatus = import("../@Enums/@EventSignal/EventValidationStatus*")
+	local enums = game.ReplicatedStorage.Enums
+	local EventValidationStatus = enums.EventSignal.EventValidationStatus
+
 	local withDotMethod = import("@Util/withDotMethod")
 
 	local EventValidationReport, _EventValidationReport = withDotMethod()

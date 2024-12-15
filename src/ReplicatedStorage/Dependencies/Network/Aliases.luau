@@ -49,8 +49,17 @@ return function(enums)
 				dispatch = "Fire",
 				listen = "Event",
 			},
-		}
+		},
+
+		[RemoteType.Function] = {
+			[MachineType.All] = {
+				dispatch = "Invoke",
+				listen = "OnInvoke",
+			},
+		},
 	}
+
+	remoteTypeToAPI[RemoteType.UnreliableRemoteEvent] = remoteTypeToAPI[RemoteType.RemoteEvent]
 
 	return {
 		machineTypeToName = machineTypeToName,

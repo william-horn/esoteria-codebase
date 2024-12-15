@@ -28,8 +28,10 @@
 ]]
 
 return function(import, global, pm)
+	local enums = game.ReplicatedStorage.Enums
+	local TestStatus = enums.TestStatus
+
 	local matchesQuery = import("@Table/matchesQuery")
-	local TestStatus = import("../@Enums/@Dev/TestStatus*")
 	local isTable = import("@Util/@Types/isTable")
 
 	local withDotMethod = import("@Util/withDotMethod")

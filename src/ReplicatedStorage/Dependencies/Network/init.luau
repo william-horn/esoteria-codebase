@@ -7,14 +7,14 @@
 
 return function(import, global, pm) 
 	-- Directories
-	local systemEnums = pm.from("../Enums/System").location
-	local networkEnums = pm.from("../Enums/Network").location
+	local enums = game.ReplicatedStorage.Enums
+	local networkEnums = enums.Network
 
 	-- Enums
-	local MachineType = systemEnums.import("MachineType*")
-	local RemoteChannel, Request = networkEnums.import("RemoteChannel*", "Request*")
-	local RemoteValidation = networkEnums.import("RemoteValidation*")
-	local RemoteType, ProtocolType = networkEnums.import("RemoteType*", "ProtocolType*")
+	local MachineType = enums.MachineType
+	local RemoteChannel, Request = networkEnums.RemoteChannel, networkEnums.Request
+	local RemoteValidation = networkEnums.RemoteValidation
+	local RemoteType, ProtocolType = networkEnums.RemoteType, networkEnums.ProtocolType
 
 	-- Dependencies
 	local System, isServer, isClient = import("@System", ".", "isServer", "isClient")
@@ -59,6 +59,7 @@ return function(import, global, pm)
 			return warn("Remote cannot be fired")
 		end
 
+
 		return remoteValidationStatus
 	end
 
@@ -68,7 +69,6 @@ return function(import, global, pm)
 			remoteType = RemoteType.RemoteEvent,
 			remoteChannel = metadata.channel,
 			request = metadata.request,
-			toPlayers = {},
 			payload = payload
 		})
 	end
