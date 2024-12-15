@@ -27,7 +27,7 @@
 	? 'name' defaults to 'Attempt: #'
 ]]
 
-return function(import, pm)
+return function(import, global, pm)
 	local matchesQuery = import("@Table/matchesQuery")
 	local TestStatus = import("../@Enums/@Dev/TestStatus*")
 	local isTable = import("@Util/@Types/isTable")

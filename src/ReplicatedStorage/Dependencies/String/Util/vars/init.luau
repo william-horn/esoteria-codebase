@@ -1,5 +1,5 @@
 
-return function(import, pm)
+return function(import, global, pm)
   local substitutionDefaults = pm.from(script).import("defaults*")
   local splitWith = import("@String/@Util/splitWith")
 	

@@ -1,5 +1,5 @@
 
-return function(import, pm)
+return function(import, global, pm)
 	local this = pm.from(script)
 
 	local StringMath = import("../@Enums/@StringMath/*")

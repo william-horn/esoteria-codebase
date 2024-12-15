@@ -22,8 +22,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- local ServerScriptService = game:GetService("ServerScriptService")
--- local PlayerService = game:GetService("Players")
--- local RunService = game:GetService("RunService")
 
 ----------------------
 ---- DEPENDENCIES ---- 
@@ -46,8 +44,23 @@ local withDotMethod = require(Path__Dependencies.Util.withDotMethod)()
 --------------------------------
 
 local PackageManager, _PackageManager = withDotMethod()
+
 PackageManager._importCalls = 0
 PackageManager._rootDirectory = Path__Dependencies
+
+PackageManager.global = {
+	shared = {},
+	
+	-- quick folder refs
+	packages = Path__Dependencies,
+	enums = ReplicatedStorage.Enums,
+	network = ReplicatedStorage.Network,
+	
+	-- quick ROBLOX service refs
+	ReplicatedStorage = ReplicatedStorage,
+	PlayerService = game:GetService("Players"),
+	RunService = game:GetService("RunService"),
+}
 
 --[[
 	cachedImportPaths = {
@@ -105,7 +118,7 @@ function PackageManager:require(module, withoutDefault)
 			error("Tried using internal _require() before 'PackageManager.import' was defined (aborted call)")
 		end
 
-		package = package(self.import, self)
+		package = package(self.import, self.global, self)
 	end
 
 	local packageIsTable = isTable(package)

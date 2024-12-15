@@ -4,6 +4,7 @@ local MachineType = {
 	Server = 0,
 	Client = 1,
 	Studio = 2,
+	All = 3,
 }
 
 return MachineType

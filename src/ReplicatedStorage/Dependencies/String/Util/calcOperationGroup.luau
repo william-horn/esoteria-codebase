@@ -1,5 +1,5 @@
 
-return function(import, pm)
+return function(import, global, pm)
 	local StringMath = import("../@Enums/@StringMath/*")
 	local StringEscaper = import("@String/@Classes/StringEscaper")
 	

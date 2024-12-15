@@ -18,7 +18,7 @@
 		If you have any questions or concerns, please email me at: williamjosephhorn@gmail.com
 ]]
 
-return function(import, pm)
+return function(import, global, pm)
 	
   ---------------
   --- Imports ---
