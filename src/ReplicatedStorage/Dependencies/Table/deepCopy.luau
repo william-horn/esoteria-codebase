@@ -63,7 +63,7 @@ return function(import)
 					terminate = false,
 					ignore = false,
 					depth = depth,
-					currentTable = dir
+					currentTable = dir,
 				}
 
 				callback(got)
