@@ -21,7 +21,8 @@ return function(import, global, pm)
 	-- local withDotMethod = import("@Util/withDotMethod")
 
 	-- Listeners
-	local remoteListeners, remotes = pm.from(script).import("Listeners")
+	local remoteListeners = require(script.Listeners)
+	local networkTree = pm.require(script.BuildNetwork)
 
 	-- naming aliases
 	local aliases = require(script.Aliases)
@@ -35,7 +36,7 @@ return function(import, global, pm)
 	local Network = {}
 
 	function Network:dispatchRemoteTo(settings)
-		local machineType = System.machineType
+		local machineType = System.MachineType
 
 		local protocolType = remotes[settings.protocolType] -- TCP/UDP
 		local fromMachine = protocolType[machineType] -- Server/Client

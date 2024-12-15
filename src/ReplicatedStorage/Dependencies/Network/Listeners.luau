@@ -1,17 +1,8 @@
 
-return function(import)
-	local Enums = game.ReplicatedStorage.Enums
-	local MachineType = Enums.MachineType
-	local RemoteType = Enums.Network.RemoteType
-	
-	local NetworkFolder = import("../@Network")
+local Enums = game.ReplicatedStorage.Enums
+local MachineType = Enums.MachineType
+local RemoteType = Enums.Network.RemoteType
 
-	local Listener = {}
+local Listeners = {}
 
-	local function buildNetworkTree()
-		local remotes = {}
-
-		
-	end
-
-end
+return Listeners

@@ -8,6 +8,7 @@
 	A super light-weight package manager for handling global dependency imports. This
 	module mimmicks a weak version of CommonJS modules. 
 	
+	TODO: Fix issue with cache not working for different path variations, i.e "../A" and "A"
 	TODO: Add warning if multiple instance names exist in a directory
 	TODO: When Commands module is finished, create import commands such as "$nocache" or "$benchmark"
 	TODO: When commands are added, create a "$ignore _" command to ignore certain file name imports such as starting with an underscore
@@ -76,6 +77,9 @@ PackageManager.global = {
 
 local cachedImportPaths = {}
 PackageManager._cachedImportPaths = cachedImportPaths
+
+local cachedImports = {}
+PackageManager._cachedImports = cachedImports
 --PackageManager._importCommands = Commands.new()
 
 --[[
@@ -102,6 +106,11 @@ PackageManager._cachedImportPaths = cachedImportPaths
 	@return: The required module
 ]]
 function PackageManager:require(module, withoutDefault)
+	-- This is where we can modify whether or not we want to recache the module on import
+	if (self._cachedImports[module]) then
+		return self._cachedImports[module]
+	end
+
 	self._importCalls += 1
 
 	-- native require
@@ -149,6 +158,8 @@ function PackageManager:require(module, withoutDefault)
 		just return the module result.
 	]]
 
+	-- run the artificial environment of the module
+	self._cachedImports[module] = package
 	return package
 end
 

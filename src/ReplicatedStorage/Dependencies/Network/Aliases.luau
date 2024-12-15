@@ -9,15 +9,31 @@ local Enums = game.ReplicatedStorage.Enums
 local MachineType = Enums.MachineType
 local RemoteType = Enums.Network.RemoteType
 local ProtocolType = Enums.Network.ProtocolType
+local RemoteChannel = Enums.Network.RemoteChannel
 
 local machineTypeToName = {
 	[MachineType.Server] = "Server",
 	[MachineType.Client] = "Client",
 }
 
-local protocolToName = {
-	[ProtocolType.TCP] = "TCP",
-	[ProtocolType.UDP] = "UDP",
+local protocolFolderToEnum = {
+	TCP = ProtocolType.TCP,
+	UDP = ProtocolType.UDP,
+	Local = ProtocolType.Local
+}
+
+local machineTypeToEnum = {
+	Server = MachineType.Server,
+	Client = MachineType.Client
+}
+
+local remoteTypeFolderToEnum = {
+	Events = RemoteType.RemoteEvent,
+	Functions = RemoteType.RemoteFunction
+}
+
+local remoteChannelFolderToEnum = {
+	Player = RemoteChannel.Player
 }
 
 local remoteTypeToAPI = {
@@ -65,6 +81,9 @@ remoteTypeToAPI[RemoteType.UnreliableRemoteEvent] = remoteTypeToAPI[RemoteType.R
 
 return {
 	machineTypeToName = machineTypeToName,
-	protocolToName = protocolToName,
+	protocolFolderToEnum = protocolFolderToEnum,
 	remoteTypeToAPI = remoteTypeToAPI,
+	machineTypeToEnum = machineTypeToEnum,
+	remoteTypeFolderToEnum = remoteTypeFolderToEnum,
+	remoteChannelFolderToEnum
 }

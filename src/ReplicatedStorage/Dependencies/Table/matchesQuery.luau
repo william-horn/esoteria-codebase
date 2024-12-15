@@ -1,3 +1,9 @@
+--[[
+	@author: William J. Horn
+	@written: 12/15/2024
+
+	Used for querying tables or comparing tables
+]]
 
 return function(import)
 	local bothAreTables, isMatch = import("@Util", "@Types/bothAreTables", "isMatch")

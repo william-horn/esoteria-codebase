@@ -2,6 +2,9 @@
 return function(import, global, pm)
 
 	-- local withDotMethod = import("@Util/withDotMethod")
+	local deepCopy = import("@Table/deepCopy")
+
+	print(pm.require(game.ReplicatedStorage.Dependencies.Network.BuildNetwork, true))
 
 
 	-- local t, _t = withDotMethod()
