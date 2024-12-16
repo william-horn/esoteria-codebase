@@ -3,9 +3,9 @@ return function(import, global, pm)
 	local Enums = game.ReplicatedStorage.Enums
 	local MachineType = Enums.MachineType
 
-	local isServer = pm.require(script.isServer)
-	local isClient = pm.require(script.isClient)
-	local isStudio = pm.require(script.isStudio)
+	local isServer = pm.require(script.Parent.isServer)
+	local isClient = pm.require(script.Parent.isClient)
+	local isStudio = pm.require(script.Parent.isStudio)
 
 	local System = {}
 

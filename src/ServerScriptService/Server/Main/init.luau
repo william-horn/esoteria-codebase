@@ -1,12 +1,17 @@
 
 return function(import, global, pm)
 
+	local network = import("Network")
+
+	print("Network: ", network)
+
+
 	-- local withDotMethod = import("@Util/withDotMethod")
 	-- local deepCopy = import("@Table/deepCopy")
 
-	local t = import("@Util/testing")
+	-- local t = import("@Util/testing")
 
-	print(t)
+	-- print(t)
 
 	-- print(pm.require(game.ReplicatedStorage.Dependencies.Network.BuildNetwork, true))
 

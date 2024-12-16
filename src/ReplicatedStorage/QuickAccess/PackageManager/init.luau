@@ -59,21 +59,9 @@ PackageManager.global = {
 	
 	-- quick ROBLOX service refs
 	ReplicatedStorage = ReplicatedStorage,
-	PlayerService = game:GetService("Players"),
+	Players = game:GetService("Players"),
 	RunService = game:GetService("RunService"),
 }
-
---[[
-	cachedImportPaths = {
-		[Dependencies] = {
-			["@Util"] = { Util, {
-				["@Types"] = { Types, {} },
-				["@Objects"] = { Objects, {} }
-		},
-
-		["@Table"] = { Child, {} }
-	}
-]]
 
 local cachedImportPaths = {}
 PackageManager._cachedImportPaths = cachedImportPaths
