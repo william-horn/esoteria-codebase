@@ -9,12 +9,11 @@
 		? Pass arguments to dispatcher instead of creating a new table
 ]]
 
-return function(import) 
+return function(import, global) 
 	-- Enums
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
 	local ConnectionType = Enums.ConnectionType
-	local Request = NetworkEnum.Request
 
 	-- Dependencies
 	local downloadNetwork = import("@Network/download")
@@ -193,7 +192,7 @@ return function(import)
 	end
 
 	function Network:init()
-		self.protocols = downloadNetwork()
+		self.protocols = downloadNetwork(global.Network, RemoteDispatcher)
 		self:listen()
 
 		return self

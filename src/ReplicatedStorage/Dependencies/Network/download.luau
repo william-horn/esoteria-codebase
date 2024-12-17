@@ -14,12 +14,9 @@ return function(import, global, pm)
 	-- Dependencies
 	local getEnumByNameFrom = import("@Util/@Types/enum*", "getEnumByNameFrom")
 	local isModule, isRemote = import("@Util/@Types", "isModule", "isRemote")
-	local getRemoteInfo = import("@Network/getRemoteInfo")
+	local isClient, isServer = import("@System", "isClient", "isServer")
 
-	-- modules
-	local RemoteDispatcher = pm.require(script.Dispatcher)
-
-	return function(from)
+	return function(from, RemoteDispatcher)
 		local protocols = {}
 
 		--[[
@@ -27,12 +24,19 @@ return function(import, global, pm)
 			| # Construct the channel data from the channel folder |
 			--------------------------------------------------------
 		]]
-		local function getRemoteDispatcherFromFolder(folder, channelEnum)
+		local function getRemoteDispatcherFromFolder(channelFolder, channelEnum, protocolFolder)
 			local requests = {}
 
-			local channelSettings = folder:FindFirstChild("Settings")
-			local requestModules = folder:FindFirstChild("Requests")
-			local RBXRemote = folder:FindFirstChild("Remote")
+			local channelSettings = channelFolder:FindFirstChild("Settings")
+			local requestModules = channelFolder:FindFirstChild("Handlers")
+			local RBXRemote
+
+			if (isClient()) then
+				RBXRemote = channelFolder:FindFirstChild("Remote")
+			
+			elseif (isServer()) then
+				RBXRemote = global.Network[protocolFolder.Name]:FindFirstChild(channelFolder.Name)
+			end
 
 			-- ! error:
 			-- If no ROBLOX remote instance exists in the folder
@@ -45,7 +49,7 @@ return function(import, global, pm)
 
 			-- Channel settings exists
 			if (channelSettings and isModule(channelSettings)) then
-					channelSettings = require(channelSettings)
+				channelSettings = require(channelSettings)
 
 			-- warn:
 			-- Channel settings exists but is not a ModuleScript
@@ -59,7 +63,7 @@ return function(import, global, pm)
 			-- warn: 
 			-- No request folder is found in channel folder
 			if (not requests) then
-				warn("No requests folder was found in channel: \"" .. folder.Name .. "\"")
+				warn("No requests folder was found in channel: \"" .. channelFolder.Name .. "\"")
 
 			-- Otherwise, scan the request handlers...
 			else
@@ -121,7 +125,7 @@ return function(import, global, pm)
 				end
 
 				-- assign the channel data
-				channels[channelEnum] = getRemoteDispatcherFromFolder(channelFolder, channelEnum)
+				channels[channelEnum] = getRemoteDispatcherFromFolder(channelFolder, channelEnum, protocolFolder)
 			end
 		end
 

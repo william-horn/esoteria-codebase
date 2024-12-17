@@ -2,7 +2,7 @@
 return function(import, global, pm)
 
 	local enums = game.ReplicatedStorage.Enums.Network
-	local network = import("Network")
+	local network = pm.from(script).import("Network")
 
 	print("Network: ", network)
 
