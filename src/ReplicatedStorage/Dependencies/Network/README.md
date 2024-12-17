@@ -63,7 +63,7 @@ Network.request()
 Network.sendTCP(
 	game.Players.JohnDoe,
 	{
-		channel = RemoteChannel.Player, 
+		channel = ChannelType.Player, 
 		request = RequestType.GetPlayer
 	},
 	{
@@ -77,7 +77,7 @@ Network.sendTCP(
 ```lua
 Network.sendTCP(
 	{
-		channel = RemoteChannel.Player, 
+		channel = ChannelType.Player, 
 		request = RequestType.GetPlayer
 	},
 	{
@@ -92,7 +92,7 @@ Network.sendTCP(
 ```lua
 Network.sendAllTCP(
 	{
-		channel = RemoteChannel.Player, 
+		channel = ChannelType.Player, 
 		request = RequestType.GetPlayer
 	},
 	{
@@ -110,7 +110,7 @@ Network.sendOthersTCP() -- same signature as 'Network.sendAllTCP()'
 Network.sendListTCP(
 	{ ...players affected... },
 	{
-		channel = RemoteChannel.Player, 
+		channel = ChannelType.Player, 
 		request = RequestType.GetPlayer
 	},
 	{

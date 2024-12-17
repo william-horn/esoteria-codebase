@@ -1,10 +1,29 @@
 
 return function(import, global, pm)
 
+	local enums = game.ReplicatedStorage.Enums.Network
 	local network = import("Network")
 
 	print("Network: ", network)
 
+	network:init()
+
+	local t = os.clock()
+	for i = 1, 1 do
+		network:sendTCP(
+			{
+				channel = enums.Channel.Player,
+				request = enums.Request.GetPlayer,
+				_dependencies = {i},
+				_toPlayers = {game.Players:WaitForChild("ScriptGuider")}
+			},
+			{
+				data = "Hello!"
+			}
+		)
+	end
+	local e = os.clock()
+	print("sendTCP took: ", e - t)
 
 	-- local withDotMethod = import("@Util/withDotMethod")
 	-- local deepCopy = import("@Table/deepCopy")

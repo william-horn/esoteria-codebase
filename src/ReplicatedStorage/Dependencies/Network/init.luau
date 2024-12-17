@@ -3,6 +3,10 @@
 	@written: 12/9/2024
 	
 	Server-side and client-side interface for sending requests over the network
+
+	TODO: Potential optimizations
+		? Reduce functions calls between network API and remote firing
+		? Pass arguments to dispatcher instead of creating a new table
 ]]
 
 return function(import, global, pm) 
@@ -13,18 +17,17 @@ return function(import, global, pm)
 	local RemoteValidation = NetworkEnum.RemoteValidation
 	local Channel, Request = NetworkEnum.Channel, NetworkEnum.Request
 	local ProtocolSignature = NetworkEnum.ProtocolSignature
+	local ChannelType = NetworkEnum.ChannelType
 
 	-- Dependencies
 	local System, isServer, isClient = import("@System", ".*", "isServer", "isClient")
 	local getEnumByNameFrom = import("@Util/@Types/enum*", "getEnumByNameFrom")
-	local isModule = import("@Util/@Types/isModule")
-	local isRemote = import("@Util/@Types/isRemote")
-
+	local isModule, isRemote = import("@Util/@Types", "isModule", "isRemote")
+	local uniquePair = import("Math/uniquePair")
 	-- local withDotMethod = import("@Util/withDotMethod")
 
 	-- modules
-	-- local remoteListeners = require(script.Listeners)
-	-- local aliases = require(script.Aliases)
+	local RemoteDispatcher = pm.require(script.Dispatcher)
 
 	--[[
 		---------------------
@@ -34,19 +37,77 @@ return function(import, global, pm)
 	-- local Network = withDotMethod()
 	local Network = {}
 	Network.protocols = nil
+	Network.cachedSignatures = {}
 
-	function Network:dispatchRemoteTo(settings)
-		local stamp = settings.stamp
-		local protocol = self.protocols[settings.protocol]
-		
-		if (not protocol) then
-			error("\"" .. tostring(settings.protocol) .. "\" is not a valid network protocol")
+	--[[
+		cachedSignature = {
+			["1.0.2.4.7"] = { dataLastSent, channelData }
+		}
+	]]
+
+	function Network:dispatchRemote(headers, payload)
+		local protocolSignature = headers._protocolSignature
+		local _dependencies = headers._dependencies
+
+		-- create a Szudzik pair
+		local signatureId = uniquePair(
+			headers.channel.Value,
+			headers.request.Value
+		) + protocolSignature.Value
+
+		-- retrieve the previously sent network data for this signature
+		local cachedSignature = self.cachedSignatures[signatureId]
+
+		if (_dependencies and cachedSignature) then
+			-- cache ref variables
+			local cachedHeaders = cachedSignature.headers
+			local cachedDependencies = cachedHeaders._dependencies
+			-- print("reject dupe transmissions is: true")
+
+			if (_dependencies and cachedDependencies and #cachedDependencies == #_dependencies) then
+				local sameValues = true
+				-- print("both dependency tables exist and are same size")
+
+				-- shallow-check if both dependency arrays are equal in content
+				for i = 1, #cachedDependencies do
+					if (cachedDependencies[i] ~= _dependencies[i]) then
+						sameValues = false
+						break
+					end
+				end
+
+				-- if all dependencies are the same, then return out
+				if (sameValues) then
+					-- print("the tables are the same, returning...")
+					return
+				end 
+			end
+
+		-- cache does not exist, create new cache
+		elseif (not cachedSignature) then
+			cachedSignature = {}
+			self.cachedSignatures[signatureId] = cachedSignature
+			-- print("first time fire, creating cache.")
+
 		end
 
-		local channelData = protocol.channels[stamp.channel]
+		-- update the cache after cache processing is done
+		-- print("updating cache. old: ", cachedSignature)
+		cachedSignature.headers = headers
+		cachedSignature.payload = payload
+		cachedSignature.headers._dependencies = _dependencies
+		-- print("updating cache. new: ", cachedSignature)
+
+		local channels = self.protocols[protocolSignature]
+		
+		if (not channels) then
+			error("\"" .. tostring(protocolSignature) .. "\" is not a valid network protocol")
+		end
+
+		local channelData = channels[headers.channel]
 
 		if (not channelData) then
-			error("\"" .. tostring(stamp.channel) .. "\" is not a valid channel")
+			error("\"" .. tostring(headers.channel) .. "\" is not a valid channel")
 		end
 
 		-- remote validation
@@ -58,51 +119,142 @@ return function(import, global, pm)
 			return
 		end
 
-		-- include metadata in the remote dispatch
-		-- if client is firing to server, metadata MUST contain which player fired the remote
-		-- otherwise invalidate the dispatch
-		local metadata = {
-			fromPlayer = settings.fromPlayer
-		}
-		--
-
-		remoteDispatcher:fire({
-			
-		})
-
-		return remoteValidationStatus
+		return remoteDispatcher:fire(headers, payload)
 	end
 
+	--[[
+		-----------------------
+		| # TCP Remote Events |
+		-----------------------
+	]]
 	-- from client
-	function Network:sendTCPClientEvent(stamp, payload)
-		self:dispatchRemoteTo({
-			protocol = ProtocolSignature.TCPClientEvent,
-			stamp = stamp,
-			fromPlayer = global.LocalPlayer,
-			payload = payload
-		})
+	function Network:sendTCPToServer(headers, payload)
+		headers._protocolSignature = ProtocolSignature.TCPOnServerEvent
+		headers._channelType = ChannelType.RemoteEvent
+		
+		return self:dispatchRemote(headers, payload)
 	end
 
 	-- from server
-	function Network:sendTCPServerEvent(players, stamp, payload)
-		self:dispatchRemoteTo({
-			protocolID = ProtocolSignature.TCPServerEvent,
-			stamp = stamp,
-			toPlayers = players,
-			payload = payload
-		})
+	function Network:sendTCPToClient(headers, payload)
+		-- ? headers should have a 'toPlayer' array of clients to fire
+		headers._protocolSignature = ProtocolSignature.TCPOnClientEvent
+		headers._channelType = ChannelType.RemoteEvent
+
+		return self:dispatchRemote(headers, payload)
+	end
+
+	function Network:sendTCPToAllClients(headers, payload)
+		headers._protocolSignature = ProtocolSignature.TCPOnClientEvent -- this will need to be it's own Enum
+		headers._channelType = ChannelType.RemoteEvent
+
+		return self:dispatchRemote(headers, payload)
 	end
 
 	function Network:sendTCP(...)
 		if (isServer()) then
-			self:sendTCPServerEvent(...)
+			return self:sendTCPToClient(...)
 
 		elseif (isClient()) then
-			self:sendTCPClientEvent(...)
+			return self:sendTCPToServer(...)
 		end
 	end
 
-	function Network:downloadProtocols()
+	function Network:sendTCPAll(headers, payload)
+		if (isServer()) then
+			headers._allClients = true
+			return self:sendTCPToAllClients(headers, payload)
+		end
+	end
+
+	--[[
+		--------------------------
+		| # TCP Remote Functions |
+		--------------------------
+	]]
+	function Network:requestTCPFromServer(headers, payload)
+		headers._protocolSignature = ProtocolSignature.TCPOnServerFunction
+		return self:dispatchRemote(headers, payload)
+	end
+
+	function Network:requestTCPFromClient(headers, payload)
+		headers._protocolSignature = ProtocolSignature.TCPOnClientFunction
+		return self:dispatchRemote(headers, payload)
+	end
+
+	function Network:requestTCP(...)
+		if (isServer()) then
+			return self:requestTCPFromClient(...)
+
+		elseif (isClient()) then
+			return self:requestTCPFromServer(...)
+		end
+	end
+
+	--[[
+		------------------
+		| # Local Events |
+		------------------
+	]]
+	function Network:sendLocal(headers, payload)
+		if (isServer()) then
+			headers._protocolSignature = ProtocolSignature.LocalServerEvent
+		elseif (isClient()) then
+			headers._protocolSignature = ProtocolSignature.LocalClientEvent
+		end
+
+		return self:dispatchRemote(headers, payload)
+	end
+
+	--[[
+		---------------------
+		| # Local Functions |
+		---------------------
+	]]
+	function Network:requestLocal(headers, payload)
+		if (isServer()) then
+			headers._protocolSignature = ProtocolSignature.LocalServerFunction
+		elseif (isClient()) then
+			headers._protocolSignature = ProtocolSignature.LocalClientFunction
+		end
+
+		return self:dispatchRemote(headers, payload)
+	end
+
+	--[[
+		-----------------------
+		| # UDP Remote Events |
+		-----------------------
+	]]
+	function Network:sendUDPToClient(headers, payload)
+		headers._protocolSignature = ProtocolSignature.UDPOnClientEvent
+		return self:dispatchRemote(headers, payload)
+	end
+
+	function Network:sendUDPToServer(headers, payload)
+		headers._protocolSignature = ProtocolSignature.UDPOnServerEvent
+		return self:dispatchRemote(headers, payload)
+	end
+
+	function Network:sendUDP(...)
+		if (isServer()) then
+			return self:sendUDPToClient(...)
+
+		elseif (isClient()) then
+			return self:sendUDPToServer(...)
+		end
+	end
+
+
+
+	--[[
+		* Network:download():
+
+		Download the network data from the initial game folders into
+		an internal model that the API will reference for outgoing
+		requests.
+	]]
+	function Network:download()
 		local protocols = {}
 
 		--[[
@@ -168,8 +320,12 @@ return function(import, global, pm)
 			end
 
 			-- finalize channel data and return
-			channelData.requests = requests
-			channelData.settings = channelSettings
+			channelData.dispatcher = RemoteDispatcher.new(
+				RBXRemote, 
+				requests, 
+				channelSettings
+			)
+
 			return channelData
 		end
 
@@ -186,13 +342,10 @@ return function(import, global, pm)
 				continue
 			end
 
-			local protocolData = {
-				folder = protocolFolder,
-				channels = {},
-			}
+			local channels = {}
 
 			-- assign the protocol data
-			protocols[protocolSignature] = protocolData
+			protocols[protocolSignature] = channels
 
 			for _, channelFolder in next, protocolFolder:GetChildren() do
 				local channelEnum = getEnumByNameFrom(Channel, channelFolder.Name)
@@ -203,7 +356,7 @@ return function(import, global, pm)
 				end
 
 				-- assign the channel data
-				protocolData.channels[channelEnum] = getChannelDataFromFolder(channelFolder)
+				channels[channelEnum] = getChannelDataFromFolder(channelFolder)
 			end
 		end
 
@@ -212,11 +365,17 @@ return function(import, global, pm)
 	end
 
 	function Network:listen()
-		remoteListeners:listen(self.protocols)
-		return self
+		for protocolSignature, protocolData in next, self.protocols do
+			
+		end
 	end
 
-	Network:downloadProtocols()
+	function Network:init()
+		self:download()
+		self:listen()
+
+		return self
+	end
 
 	return {
 		default = Network

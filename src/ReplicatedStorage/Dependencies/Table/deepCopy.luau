@@ -36,6 +36,22 @@
 			- the depth of the cycle
 		? got.currentTable
 			- the current table in the cycle
+
+	Example of stopping table coping once past a certain depth:
+
+		deepCopy(t, function(got)
+			if (got.depth == 3) then
+				got.terminate = true
+				return 
+			end
+		end)
+
+	Example of changing keys/values in table copy:
+
+		deepCopy(t, function(got)
+			got.key = tostring(got.key) .. " - modified"
+			got.value = tostring(got.value) .. " - modified"
+		end)
 ]]
 
 return function(import)

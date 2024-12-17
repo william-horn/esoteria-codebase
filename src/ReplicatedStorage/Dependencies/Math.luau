@@ -51,6 +51,11 @@ return function()
 		return a + (b - a)*p
 	end
 
+	-- Szudzik's pairing function
+	function Math.uniquePair(a, b)
+		return a > b and a*a + a + b or b*b + a
+	end
+
 	--[[
 		@desc: Returns a value's percentage from min to max
 		Example: getPercentFrom(1, 10, 7) -> 0.7

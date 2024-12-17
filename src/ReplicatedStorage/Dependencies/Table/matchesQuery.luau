@@ -19,11 +19,14 @@ return function(import)
 
 		caseSensitive<boolean>: Whether or not string values will ignore case sensitivity
 		default: true
+
+		shallowCheck<boolean>: Whether or not the function will deeply check values. If true, only top-level
+		entries will be checked.
 	]]
 
 	local function matchesQuery(data, query, options)
 		options = options or {}
-		local queue = { {data, query} }
+		local queue = {{ data, query }}
 
 		while (#queue > 0) do
 			local set = queue[#queue]
@@ -41,7 +44,7 @@ return function(import)
 
 				if (dataVal == nil) then return false end
 
-				if (bothAreTables(queryVal, dataVal)) then
+				if (bothAreTables(queryVal, dataVal) and not options.shallowCheck) then
 					queue[#queue + 1] = { dataVal, queryVal }
 
 				elseif (not isMatch(dataVal, queryVal, options)) then

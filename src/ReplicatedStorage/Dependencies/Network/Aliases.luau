@@ -9,6 +9,7 @@ local Enums = game.ReplicatedStorage.Enums
 local Network = Enums.Network
 local MachineType = Enums.MachineType
 local ChannelType = Network.ChannelType
+local ProtocolSignature = Network.ProtocolSignature
 
 --[[
 	A solved system of the form:
@@ -56,6 +57,41 @@ local toSystemVariable = {
 	[ChannelType.RemoteFunction] = 4
 }
 ]]
+
+local signatureToEnums = {
+	[ProtocolSignature.TCPClientEvent] = {
+		ChannelType = Network.ChannelType.RemoteEvent,
+		dispatchSignal = "FireServer",
+		
+	},
+	[ProtocolSignature.TCPServerEvent] = {
+		[Network.ChannelType] = Network.ChannelType.RemoteEvent
+	},
+	[ProtocolSignature.TCPClientFunction] = {
+		[Network.ChannelType] = Network.ChannelType.RemoteFunction
+	},
+	[ProtocolSignature.TCPServerFunction] = {
+		[Network.ChannelType] = Network.ChannelType.RemoteFunction
+	},
+	[ProtocolSignature.LocalClientEvent] = {
+		[Network.ChannelType] = Network.ChannelType.Event
+	},
+	[ProtocolSignature.LocalClientFunction] = {
+		[Network.ChannelType] = Network.ChannelType.Function
+	},
+	[ProtocolSignature.LocalServerEvent] = {
+		[Network.ChannelType] = Network.ChannelType.Event
+	},
+	[ProtocolSignature.LocalServerFunction] = {
+		[Network.ChannelType] = Network.ChannelType.Function
+	},
+	[ProtocolSignature.UDPClientEvent] = {
+		[Network.ChannelType] = Network.ChannelType.UnreliableRemoteEvent
+	},
+	[ProtocolSignature.UDPServerEvent] = {
+		[Network.ChannelType] = Network.ChannelType.UnreliableRemoteEvent
+	},
+}
 
 local channelTypeToAPI = {
 	[ChannelType.RemoteEvent] = {
