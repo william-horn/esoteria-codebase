@@ -9,13 +9,16 @@
 		? Pass arguments to dispatcher instead of creating a new table
 ]]
 
-return function(import, _, pm) 
+return function(import) 
 	-- Enums
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
+	local ConnectionType = Enums.ConnectionType
+	local Request = NetworkEnum.Request
 
 	-- Dependencies
-	local downloadNetwork = import("@Network/Download")
+	local downloadNetwork = import("@Network/download")
+	local RemoteDispatcher = require(script.Parent.Dispatcher)
 
 	--[[
 		---------------------
@@ -24,25 +27,45 @@ return function(import, _, pm)
 	]]
 	local Network = {}
 	Network.protocols = nil
-	Network.cachedDispatches = {}
+
+	local function handleRequest(remoteDispatcher)
+		local requests = remoteDispatcher.requests
+		local channel = remoteDispatcher.channel
+
+		return function(headers, payload)
+			if (headers.channel ~= channel) then
+				return
+			end
+
+			local request = requests[headers.request]
+
+			if (not request) then
+				error("Network error: Could not interpret request \"" .. tostring(headers.request) .. "\" (does not have a corresponding Enum)")
+				return
+			end
+
+			request.process(headers, payload)
+		end
+	end
 
 	function Network:dispatchRemote(headers, payload)
 		local _dependencies = headers._dependencies
 		local _protocolType = headers._protocolType
+		local channel = headers.channel
 		local channels = self.protocols[_protocolType]
 
+		-- validate the header signatures
 		if (not channels) then
 			error("\"" .. tostring(_protocolType) .. "\" is not a valid network ProtocolType")
 		end
 
-		local channel = headers.channel
-		local channelData = channels[channel]
+		local remoteDispatcher = channels[channel]
 
-		if (not channelData) then
+		if (not remoteDispatcher) then
 			error("\"" .. tostring(headers.channel) .. "\" is not a valid Channel")
 		end
 
-		local request = channelData[headers.request]
+		local request = remoteDispatcher.requests[headers.request]
 
 		if (not request) then
 			error("\"" .. tostring(headers.channel) .. "\" is not a valid Request")
@@ -92,7 +115,6 @@ return function(import, _, pm)
 		-- print("updating cache. new: ", cachedSignature)
 
 		-- remote validation
-		local remoteDispatcher = channelData.dispatcher
 		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
 	end
 
@@ -103,12 +125,11 @@ return function(import, _, pm)
 		headers = {
 			channel* = Channel
 			request* = Request
-			_toPlayers = {}
-			_allClients = true
+			(x) _toPlayers = {}
+			(x) _allClients = true
 			(x) _fromMachine
 			_dependencies = {}
-			_protocolSignature = ProtocolSignature
-			_channelType = ChannelType
+			_protocolType = ProtocolType
 			(x) _withValidation
 		}
 	]]
@@ -123,6 +144,7 @@ return function(import, _, pm)
 		--------------------------
 	]]
 	function Network:requestTCP(headers, payload)
+		headers._protocolType = NetworkEnum.ProtocolType.TCPFunction
 		return self:dispatchRemote(headers, payload)
 	end
 
@@ -132,6 +154,7 @@ return function(import, _, pm)
 		------------------
 	]]
 	function Network:sendLocal(headers, payload)
+		headers._protocolType = NetworkEnum.ProtocolType.LocalEvent
 		return self:dispatchRemote(headers, payload)
 	end
 
@@ -141,6 +164,7 @@ return function(import, _, pm)
 		---------------------
 	]]
 	function Network:requestLocal(headers, payload)
+		headers._protocolType = NetworkEnum.ProtocolType.LocalFunction
 		return self:dispatchRemote(headers, payload)
 	end
 
@@ -150,12 +174,21 @@ return function(import, _, pm)
 		-----------------------
 	]]
 	function Network:sendUDP(headers, payload)
+		headers._protocolType = NetworkEnum.ProtocolType.UDPEvent
 		return self:dispatchRemote(headers, payload)
 	end
 
 	function Network:listen()
-		for protocolSignature, protocolData in next, self.protocols do
-			
+		for _, remoteDispatcher in next, RemoteDispatcher.instances do
+			local remoteInfo = remoteDispatcher.channelSettings.remoteSignalNames
+			local remote = remoteDispatcher.remote
+
+			if (remoteInfo.connectionType == ConnectionType.Event) then
+				remote[remoteInfo.listener]:Connect(handleRequest(remoteDispatcher))
+
+			elseif (remoteInfo.connectionType == ConnectionType.Callback) then
+				remote[remoteInfo.listener] = handleRequest(remoteDispatcher)
+			end
 		end
 	end
 

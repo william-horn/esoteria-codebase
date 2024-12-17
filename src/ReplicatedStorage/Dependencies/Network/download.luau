@@ -14,7 +14,7 @@ return function(import, global, pm)
 	-- Dependencies
 	local getEnumByNameFrom = import("@Util/@Types/enum*", "getEnumByNameFrom")
 	local isModule, isRemote = import("@Util/@Types", "isModule", "isRemote")
-	local getSignalNamesFromRemote = import("@Network/getSignalNamesFromRemote")
+	local getRemoteInfo = import("@Network/getRemoteInfo")
 
 	-- modules
 	local RemoteDispatcher = pm.require(script.Dispatcher)
@@ -27,8 +27,7 @@ return function(import, global, pm)
 			| # Construct the channel data from the channel folder |
 			--------------------------------------------------------
 		]]
-		local function getChannelDataFromFolder(folder)
-			local channelData = {}
+		local function getRemoteDispatcherFromFolder(folder, channelEnum)
 			local requests = {}
 
 			local channelSettings = folder:FindFirstChild("Settings")
@@ -87,18 +86,12 @@ return function(import, global, pm)
 				end
 			end
 
-			-- insert the remote connection signal names in the channelSettings
-			-- i.e, OnClientEvent, FireClient, etc.
-			channelSettings.remoteSignalNames = getSignalNamesFromRemote(RBXRemote)
-
-			-- finalize channel data and return
-			channelData.dispatcher = RemoteDispatcher.new(
+			return RemoteDispatcher.new(
+				channelEnum,
 				RBXRemote, 
 				requests, 
 				channelSettings
 			)
-
-			return channelData
 		end
 
 		--[[
@@ -128,7 +121,7 @@ return function(import, global, pm)
 				end
 
 				-- assign the channel data
-				channels[channelEnum] = getChannelDataFromFolder(channelFolder)
+				channels[channelEnum] = getRemoteDispatcherFromFolder(channelFolder, channelEnum)
 			end
 		end
 

@@ -1,11 +1,14 @@
 
 
-return function()
+return function(import)
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
 	local RemoteValidation = NetworkEnum.RemoteValidation
 
+	local getRemoteInfo = import("@Network/getRemoteInfo")
+
 	local RemoteDispatcher = {}
+	RemoteDispatcher.instances = {}
 	RemoteDispatcher.__index = RemoteDispatcher
 
 	function RemoteDispatcher:validate(validator) -- make validator an optional callback function that returns conditional validated logic
@@ -22,18 +25,21 @@ return function()
 			return
 		end
 
-		local dispatchSignal = self.channelSettings.remoteSignalNames.dispatch
+		local dispatchSignal = self.remoteInfo.dispatch
 		self.remote[dispatchSignal](self.remote, headers, payload)
 	end
 
-	function RemoteDispatcher.new(RBXRemote, requests, channelSettings)
-		local r = {}
+	function RemoteDispatcher.new(channel, RBXRemote, requests, channelSettings)
+		local r = setmetatable({}, RemoteDispatcher)
 
 		r.remote = RBXRemote
 		r.requests = requests
 		r.channelSettings = channelSettings
+		r.channel = channel
+		r.remoteInfo = getRemoteInfo(RBXRemote)
 
-		return setmetatable(r, RemoteDispatcher)
+		RemoteDispatcher.instances[#RemoteDispatcher.instances + 1] = r
+		return r
 	end
 
 	return { default = RemoteDispatcher }
