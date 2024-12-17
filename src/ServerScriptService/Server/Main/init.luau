@@ -24,6 +24,34 @@ return function(import, global, pm)
 
 	print("==========================")
 
+	network:sendTCP(
+		{
+			channel = enums.Channel.Player,
+			request = enums.Request.GetPlayer,
+			_dependencies = {"same0"},
+			_toPlayers = {p}
+		},
+		{
+			data = "test"
+		}
+	)
+
+	print("==========================")
+
+	network:sendTCP(
+		{
+			channel = enums.Channel.Player,
+			request = enums.Request.GetPlayer,
+			_dependencies = {"same0"},
+			_toPlayers = {p}
+		},
+		{
+			data = "test"
+		}
+	)
+
+	print("==========================")
+
 
 	-- for i = 1, 100 do
 	-- 	network:sendTCPAll(

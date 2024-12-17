@@ -16,6 +16,8 @@ return function(import)
 	end
 
 	function RemoteDispatcher:fire(headers, payload)
+		print("Dispatching server-side: ", headers, payload)
+
 		-- ! REMOTE VALIDATION CHECK HERE
 		-- validate remote call against `channelSettings` and possibly `headers`
 		local remoteValidation = self:validate()
@@ -31,6 +33,7 @@ return function(import)
 			self.remote:FireAllClients(headers, payload)
 		else
 			for _, player in next, headers._toPlayers do
+				print("fired remote to: ", player)
 				self.remote[dispatchSignal](self.remote, player, headers, payload)
 			end
 		end

@@ -1,4 +1,8 @@
-return function()
+return function(import)
 
-	return {}
+	
+	return function(headers, payload)
+		print("Client received headers: ", headers)
+		print("Client payload: ", payload)
+	end
 end

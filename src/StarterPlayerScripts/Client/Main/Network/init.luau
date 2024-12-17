@@ -9,7 +9,7 @@
 		? Pass arguments to dispatcher instead of creating a new table
 ]]
 
-return function(import, global) 
+return function(import, global, pm) 
 	-- Enums
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
@@ -17,7 +17,7 @@ return function(import, global)
 
 	-- Dependencies
 	local downloadNetwork = import("@Network/download")
-	local RemoteDispatcher = require(script.Dispatcher)
+	local RemoteDispatcher = pm.require(script.Dispatcher)
 
 	--[[
 		---------------------
@@ -29,13 +29,8 @@ return function(import, global)
 
 	local function handleRequest(remoteDispatcher)
 		local requests = remoteDispatcher.requests
-		local channel = remoteDispatcher.channel
 
 		return function(headers, payload)
-			if (headers.channel ~= channel) then
-				return
-			end
-
 			local request = requests[headers.request]
 
 			if (not request) then
@@ -100,18 +95,23 @@ return function(import, global)
 
 		-- cache does not exist, create new cache
 		elseif (not cachedDispatch) then
-			cachedDispatch = {}
+			cachedDispatch = {
+				headers = {}
+			}
 			request.cache = cachedDispatch
 			-- print("first time fire, creating cache.")
 
 		end
 
-		-- update the cache after cache processing is done
-		-- print("updating cache. old: ", cachedSignature)
-		cachedDispatch.headers = headers
+		-- manually choose which headers and payload data to copy into the cache
+		-- print("updating cache. old: ", cachedDispatch)
+		-- cachedDispatch.headers = table.clone(headers) -- to copy all headers
 		cachedDispatch.payload = payload
 		cachedDispatch.headers._dependencies = _dependencies
-		-- print("updating cache. new: ", cachedSignature)
+		-- print("updating cache. new: ", cachedDispatch)
+
+		-- modify any final changes to headers before sending to server
+		headers._dependencies = nil
 
 		-- remote validation
 		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
@@ -126,7 +126,6 @@ return function(import, global)
 			request* = Request
 			(x) _toPlayers = {}
 			(x) _allClients = true
-			(x) _fromMachine
 			_dependencies = {}
 			_protocolType = ProtocolType
 			(x) _withValidation

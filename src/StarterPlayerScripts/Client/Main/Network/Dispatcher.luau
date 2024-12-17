@@ -25,6 +25,8 @@ return function(import)
 			return
 		end
 
+		print("Firing client-side: ", headers, payload)
+
 		local dispatchSignal = self.remoteInfo.dispatch
 		self.remote[dispatchSignal](self.remote, headers, payload)
 	end

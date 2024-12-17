@@ -10,7 +10,6 @@ return function(import, _, pm)
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
 	local ConnectionType = Enums.ConnectionType
-	local Request = NetworkEnum.Request
 
 	-- Dependencies
 	local downloadNetwork = import("@Network/download")
@@ -28,18 +27,35 @@ return function(import, _, pm)
 		local requests = remoteDispatcher.requests
 		local channel = remoteDispatcher.channel
 
-		return function(headers, payload)
-			if (headers.channel ~= channel) then
-				return
-			end
+		return function(fromPlayer, headers, payload)
+			print("got signal from player: ", fromPlayer)
+			
+			-- if (headers.channel ~= channel) then
+			-- 	return
+			-- end
 
+			--[[
+				get the request:
+
+				(on the client-side)
+				request = {
+					process = handlerFunction(),
+					cache = { headers = lastUsedHeaders, payload = lastUsedPayload }
+				}
+			]]
 			local request = requests[headers.request]
 
+			-- ! error:
+			-- If the request is not recognized in the network, throw error
 			if (not request) then
 				error("Network error: Could not interpret request \"" .. tostring(headers.request) .. "\" (does not have a corresponding Enum)")
 				return
 			end
 
+			-- make any final changes to headers or payload before firing remote
+			headers._fromPlayer = fromPlayer
+
+			-- fire the server-side remote handler
 			request.process(headers, payload)
 		end
 	end
@@ -97,18 +113,23 @@ return function(import, _, pm)
 
 		-- cache does not exist, create new cache
 		elseif (not cachedDispatch) then
-			cachedDispatch = {}
+			cachedDispatch = {
+				headers = {},
+			}
 			request.cache = cachedDispatch
 			-- print("first time fire, creating cache.")
 
 		end
 
-		-- update the cache after cache processing is done
-		-- print("updating cache. old: ", cachedSignature)
-		cachedDispatch.headers = headers
+		-- manually choose which headers and payload data to copy into the cache
+		-- print("updating cache. old: ", cachedDispatch)
+		-- cachedDispatch.headers = table.clone(headers) -- to copy all headers
 		cachedDispatch.payload = payload
 		cachedDispatch.headers._dependencies = _dependencies
-		-- print("updating cache. new: ", cachedSignature)
+		-- print("updating cache. new: ", cachedDispatch)
+
+		-- modify any final changes to headers
+		headers._dependencies = nil
 
 		-- remote validation
 		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
@@ -130,11 +151,6 @@ return function(import, _, pm)
 		}
 	]]
 	function Network:sendTCP(headers, payload)
-		headers._protocolType = NetworkEnum.ProtocolType.TCPEvent
-		return self:dispatchRemote(headers, payload)
-	end
-
-	function Network:sendTCPAll(headers, payload)
 		headers._protocolType = NetworkEnum.ProtocolType.TCPEvent
 		return self:dispatchRemote(headers, payload)
 	end
@@ -184,9 +200,11 @@ return function(import, _, pm)
 			local remoteInfo = remoteDispatcher.remoteInfo
 			local remote = remoteDispatcher.remote
 
+			-- Listen to remote events/bindable events
 			if (remoteInfo.connectionType == ConnectionType.Event) then
 				remote[remoteInfo.listener]:Connect(handleRequest(remoteDispatcher))
 
+			-- Listen to remote functions/bindable functions
 			elseif (remoteInfo.connectionType == ConnectionType.Callback) then
 				remote[remoteInfo.listener] = handleRequest(remoteDispatcher)
 			end
