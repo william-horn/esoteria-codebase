@@ -35,7 +35,12 @@ return function(import, global, pm)
 				RBXRemote = channelFolder:FindFirstChild("Remote")
 			
 			elseif (isServer()) then
-				RBXRemote = global.Network[protocolFolder.Name]:FindFirstChild(channelFolder.Name)
+				-- TODO: Add error checking to this
+				local _serverProtocolFolder = global.Network:FindFirstChild(protocolFolder.Name)
+				local _serverChannelFolder = _serverProtocolFolder:FindFirstChild(channelFolder.Name)
+				local _serverRemote = _serverChannelFolder:FindFirstChild("Remote")
+
+				RBXRemote = _serverRemote
 			end
 
 			-- ! error:

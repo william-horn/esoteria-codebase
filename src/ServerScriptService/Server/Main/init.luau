@@ -24,19 +24,6 @@ return function(import, global, pm)
 
 	print("==========================")
 
-	-- local t = os.clock()
-	network:sendTCPAll(
-		{
-			channel = enums.Channel.Player,
-			request = enums.Request.GetPlayer,
-			_dependencies = {"same"},
-		},
-		{
-			data = "test"
-		}
-	)
-
-	print("==========================")
 
 	-- for i = 1, 100 do
 	-- 	network:sendTCPAll(

@@ -26,7 +26,14 @@ return function(import)
 		end
 
 		local dispatchSignal = self.remoteInfo.dispatch
-		self.remote[dispatchSignal](self.remote, headers, payload)
+
+		if (headers._allClients) then
+			self.remote:FireAllClients(headers, payload)
+		else
+			for _, player in next, headers._toPlayers do
+				self.remote[dispatchSignal](self.remote, player, headers, payload)
+			end
+		end
 	end
 
 	function RemoteDispatcher.new(channel, RBXRemote, requests, channelSettings)

@@ -5,7 +5,7 @@
 	Server-side interface for sending requests over the network
 ]]
 
-return function(import) 
+return function(import, _, pm) 
 	-- Enums
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
@@ -14,7 +14,7 @@ return function(import)
 
 	-- Dependencies
 	local downloadNetwork = import("@Network/download")
-	local RemoteDispatcher = require(script.Parent.Dispatcher)
+	local RemoteDispatcher = pm.require(script.Parent.Dispatcher)
 
 	--[[
 		---------------------
@@ -181,7 +181,7 @@ return function(import)
 
 	function Network:listen()
 		for _, remoteDispatcher in next, RemoteDispatcher.instances do
-			local remoteInfo = remoteDispatcher.channelSettings.remoteSignalNames
+			local remoteInfo = remoteDispatcher.remoteInfo
 			local remote = remoteDispatcher.remote
 
 			if (remoteInfo.connectionType == ConnectionType.Event) then
