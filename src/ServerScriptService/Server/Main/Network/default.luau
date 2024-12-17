@@ -7,14 +7,13 @@
 	TODO: Potential optimizations
 		? Reduce functions calls between network API and remote firing
 		? Pass arguments to dispatcher instead of creating a new table
+
 ]]
 
 return function(import, global, pm) 
 	-- Enums
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
-
-	local RemoteValidation = NetworkEnum.RemoteValidation
 	local Channel, Request = NetworkEnum.Channel, NetworkEnum.Request
 	local ProtocolSignature = NetworkEnum.ProtocolSignature
 	local ChannelType = NetworkEnum.ChannelType
@@ -24,6 +23,18 @@ return function(import, global, pm)
 	local getEnumByNameFrom = import("@Util/@Types/enum*", "getEnumByNameFrom")
 	local isModule, isRemote = import("@Util/@Types", "isModule", "isRemote")
 	local uniquePair = import("Math/uniquePair")
+
+	local isBindableEvent, 
+	isBindableFunction, 
+	isRemoteEvent, 
+	isRemoteFunction = import(
+		"@Util/@Types", 
+		"isBindableEvent", 
+		"isBindableFunction",
+		"isRemoteEvent",
+		"isRemoteFunction"
+	)
+
 	-- local withDotMethod = import("@Util/withDotMethod")
 
 	-- modules
@@ -38,6 +49,29 @@ return function(import, global, pm)
 	local Network = {}
 	Network.protocols = nil
 	Network.cachedSignatures = {}
+
+	local function getSignalNamesFromRemote(remote)
+		local signalNames = {}
+
+		if (isRemoteEvent(remote)) then
+			signalNames.connect = isClient() and "OnClientEvent" or "OnServerEvent"
+			signalNames.dispatch = isClient() and "FireServer" or "FireClient"
+
+		elseif (isRemoteFunction(remote)) then
+			signalNames.connect = isClient() and "OnClientInvoke" or "OnServerInvoke"
+			signalNames.dispatch = isClient() and "InvokeServer" or "InvokeClient"
+
+		elseif (isBindableEvent(remote)) then
+			signalNames.connect = "Event"
+			signalNames.dispatch = "Fire"
+
+		elseif (isBindableFunction(remote)) then
+			signalNames.connect = "OnInvoke"
+			signalNames.dispatch = "Invoke"
+		end
+
+		return signalNames
+	end
 
 	--[[
 		cachedSignature = {
@@ -69,8 +103,8 @@ return function(import, global, pm)
 				-- print("both dependency tables exist and are same size")
 
 				-- shallow-check if both dependency arrays are equal in content
-				for i = 1, #cachedDependencies do
-					if (cachedDependencies[i] ~= _dependencies[i]) then
+				for index = 1, #cachedDependencies do
+					if (cachedDependencies[index] ~= _dependencies[index]) then
 						sameValues = false
 						break
 					end
@@ -112,59 +146,34 @@ return function(import, global, pm)
 
 		-- remote validation
 		local remoteDispatcher = channelData.dispatcher
-		local remoteValidationStatus = remoteDispatcher:validate()
-
-		if (remoteValidationStatus.result == RemoteValidation.Rejected) then
-			warn("Remote failed.")
-			return
-		end
-
-		return remoteDispatcher:fire(headers, payload)
+		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
 	end
 
 	--[[
 		-----------------------
 		| # TCP Remote Events |
 		-----------------------
+		headers = {
+			channel* = Channel
+			request* = Request
+			_toPlayers = {}
+			_allClients = true
+			(x) _fromMachine
+			_dependencies = {}
+			_protocolSignature = ProtocolSignature
+			_channelType = ChannelType
+			(x) _withValidation
+		}
 	]]
-	-- from client
-	function Network:sendTCPToServer(headers, payload)
-		headers._protocolSignature = ProtocolSignature.TCPOnServerEvent
-		headers._channelType = ChannelType.RemoteEvent
-		
-		return self:dispatchRemote(headers, payload)
-	end
-
-	-- from server
-	function Network:sendTCPToClient(headers, payload)
-		-- ? headers should have a 'toPlayer' array of clients to fire
-		headers._protocolSignature = ProtocolSignature.TCPOnClientEvent
-		headers._channelType = ChannelType.RemoteEvent
-
-		return self:dispatchRemote(headers, payload)
-	end
-
-	function Network:sendTCPToAllClients(headers, payload)
-		headers._protocolSignature = ProtocolSignature.TCPOnClientEvent -- this will need to be it's own Enum
-		headers._channelType = ChannelType.RemoteEvent
-
-		return self:dispatchRemote(headers, payload)
-	end
-
-	function Network:sendTCP(...)
+	function Network:sendTCP(headers, payload)
 		if (isServer()) then
-			return self:sendTCPToClient(...)
-
-		elseif (isClient()) then
-			return self:sendTCPToServer(...)
+			headers._protocolSignature = ProtocolSignature.TCPOnClientEvent 
+		else
+			headers._protocolSignature = ProtocolSignature.TCPOnServerEvent
 		end
-	end
 
-	function Network:sendTCPAll(headers, payload)
-		if (isServer()) then
-			headers._allClients = true
-			return self:sendTCPToAllClients(headers, payload)
-		end
+		headers._channelType = ChannelType.RemoteEvent
+		return self:dispatchRemote(headers, payload)
 	end
 
 	--[[
@@ -172,23 +181,16 @@ return function(import, global, pm)
 		| # TCP Remote Functions |
 		--------------------------
 	]]
-	function Network:requestTCPFromServer(headers, payload)
-		headers._protocolSignature = ProtocolSignature.TCPOnServerFunction
-		return self:dispatchRemote(headers, payload)
-	end
-
-	function Network:requestTCPFromClient(headers, payload)
-		headers._protocolSignature = ProtocolSignature.TCPOnClientFunction
-		return self:dispatchRemote(headers, payload)
-	end
-
-	function Network:requestTCP(...)
+	function Network:requestTCP(headers, payload)
 		if (isServer()) then
-			return self:requestTCPFromClient(...)
+			headers._protocolSignature = ProtocolSignature.TCPOnClientFunction
 
-		elseif (isClient()) then
-			return self:requestTCPFromServer(...)
+		else
+			headers._protocolSignature = ProtocolSignature.TCPOnServerFunction
 		end
+
+		headers._channelType = ChannelType.RemoteFunction
+		return self:dispatchRemote(headers, payload)
 	end
 
 	--[[
@@ -197,6 +199,8 @@ return function(import, global, pm)
 		------------------
 	]]
 	function Network:sendLocal(headers, payload)
+		headers._channelType = ChannelType.Event
+
 		if (isServer()) then
 			headers._protocolSignature = ProtocolSignature.LocalServerEvent
 		elseif (isClient()) then
@@ -212,6 +216,8 @@ return function(import, global, pm)
 		---------------------
 	]]
 	function Network:requestLocal(headers, payload)
+		headers._channelType = ChannelType.Function
+
 		if (isServer()) then
 			headers._protocolSignature = ProtocolSignature.LocalServerFunction
 		elseif (isClient()) then
@@ -227,12 +233,16 @@ return function(import, global, pm)
 		-----------------------
 	]]
 	function Network:sendUDPToClient(headers, payload)
+		headers._channelType = ChannelType.UnreliableRemoteEvent
 		headers._protocolSignature = ProtocolSignature.UDPOnClientEvent
+
 		return self:dispatchRemote(headers, payload)
 	end
 
 	function Network:sendUDPToServer(headers, payload)
+		headers._channelType = ChannelType.UnreliableRemoteEvent
 		headers._protocolSignature = ProtocolSignature.UDPOnServerEvent
+
 		return self:dispatchRemote(headers, payload)
 	end
 
@@ -244,8 +254,6 @@ return function(import, global, pm)
 			return self:sendUDPToServer(...)
 		end
 	end
-
-
 
 	--[[
 		* Network:download():
@@ -318,6 +326,10 @@ return function(import, global, pm)
 					requests[requestEnum] = pm.require(requestModule, true)
 				end
 			end
+
+			-- insert the remote connection signal names in the channelSettings
+			-- i.e, OnClientEvent, FireClient, etc.
+			channelSettings.remoteSignalNames = getSignalNamesFromRemote(RBXRemote)
 
 			-- finalize channel data and return
 			channelData.dispatcher = RemoteDispatcher.new(

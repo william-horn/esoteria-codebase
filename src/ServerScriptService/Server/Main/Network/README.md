@@ -118,3 +118,53 @@ Network.sendListTCP(
 	}
 )
 ```
+
+for future reference:
+
+A solved system of the form:
+```
+{
+	T + C + E = 1
+	T + S + E = 2
+	T + C + F = 3
+	T + S + F = 4
+	L + C + E = 5
+	L + S + E = 6
+	L + C + F = 7
+	L + S + F = 8
+	U + C + E = 9
+	U + S + E = 10
+}
+```
+
+where:
+
+	T = -2
+	L = 2
+	U = 6
+	C = 1
+	S = 2
+	E = 2
+	F = 4
+
+and:
+
+	T = TCP
+	U = UDP
+	L = Local
+	C = Client
+	S = Server
+	E = Event
+	F = Function
+
+mapping:
+
+	local toSystemVariable = {
+		[MachineType.Client] = 1,
+		[MachineType.Server] = 2,
+		[ProtocolType.TCP] = -2,
+		[ProtocolType.UDP] = 6,
+		[ProtocolType.Local] = 2,
+		[ChannelType.RemoteEvent] = 2,
+		[ChannelType.RemoteFunction] = 4
+	}

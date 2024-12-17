@@ -1,4 +1,0 @@
-return function()
-
-	return {}
-end

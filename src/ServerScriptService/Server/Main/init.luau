@@ -6,24 +6,52 @@ return function(import, global, pm)
 
 	print("Network: ", network)
 
+	local p = game.Players:WaitForChild("ScriptGuider")
+
 	network:init()
 
-	local t = os.clock()
-	for i = 1, 1 do
-		network:sendTCP(
-			{
-				channel = enums.Channel.Player,
-				request = enums.Request.GetPlayer,
-				_dependencies = {i},
-				_toPlayers = {game.Players:WaitForChild("ScriptGuider")}
-			},
-			{
-				data = "Hello!"
-			}
-		)
-	end
-	local e = os.clock()
-	print("sendTCP took: ", e - t)
+	network:sendTCP(
+		{
+			channel = enums.Channel.Player,
+			request = enums.Request.GetPlayer,
+			_dependencies = {"same"},
+			_toPlayers = {p}
+		},
+		{
+			data = "test"
+		}
+	)
+
+	print("==========================")
+
+	-- local t = os.clock()
+	network:sendTCPAll(
+		{
+			channel = enums.Channel.Player,
+			request = enums.Request.GetPlayer,
+			_dependencies = {"same"},
+		},
+		{
+			data = "test"
+		}
+	)
+
+	print("==========================")
+
+	-- for i = 1, 100 do
+	-- 	network:sendTCPAll(
+	-- 		{
+	-- 			channel = enums.Channel.Player,
+	-- 			request = enums.Request.GetPlayer,
+	-- 			_dependencies = {"same"},
+	-- 		},
+	-- 		{
+	-- 			data = i
+	-- 		}
+	-- 	)
+	-- end
+	-- local e = os.clock()
+	-- print("sendTCP took: ", e - t)
 
 	-- local withDotMethod = import("@Util/withDotMethod")
 	-- local deepCopy = import("@Table/deepCopy")
