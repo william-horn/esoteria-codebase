@@ -12,6 +12,7 @@ return function(import, global, pm)
 	local ProtocolType = NetworkEnum.ProtocolType
 
 	-- Dependencies
+	local System = import("System")
 	local getEnumByNameFrom = import("@Util/@Types/enum*", "getEnumByNameFrom")
 	local isModule, isRemote = import("@Util/@Types", "isModule", "isRemote")
 
@@ -43,7 +44,7 @@ return function(import, global, pm)
 
 			-- Check for synchronization with source folder
 			if (not sourceChannelFolder) then
-				warn("Channels could not sync properly, missing channel \"" .. channelFolder.Name .. "\" in \"" .. tostring(channelFolder.Parent) .. "\" on the Server")
+				warn("Channels could not sync properly, missing channel \"" .. channelFolder.Name .. "\" in \"" .. tostring(channelFolder.Parent) .. "\" on the " .. System.MachineType.Name)
 			else
 				local requestHandlersFolder = sourceChannelFolder:FindFirstChild("Handlers")
 

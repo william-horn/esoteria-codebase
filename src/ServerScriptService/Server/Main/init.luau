@@ -10,11 +10,12 @@ return function(import, global, pm)
 
 	network:init()
 
+
 	network:sendTCP(
 		{
 			channel = enums.Channel.Common,
 			request = enums.Request.GetPlayer,
-			_dependencies = {"same"},
+			-- _dependencies = {"same"},
 			_toPlayers = {p}
 		},
 		{
@@ -24,12 +25,11 @@ return function(import, global, pm)
 
 	print("==========================")
 
-	
 	network:sendTCP(
 		{
 			channel = enums.Channel.Common,
 			request = enums.Request.GetPlayer,
-			_dependencies = {"same0"},
+			-- _dependencies = {"same"},
 			_toPlayers = {p}
 		},
 		{
@@ -39,13 +39,11 @@ return function(import, global, pm)
 
 	print("==========================")
 
-
-	
 	network:sendTCP(
 		{
 			channel = enums.Channel.Common,
 			request = enums.Request.GetPlayer,
-			_dependencies = {"same"},
+			-- _dependencies = {"same"},
 			_toPlayers = {p}
 		},
 		{
@@ -54,7 +52,6 @@ return function(import, global, pm)
 	)
 
 	print("==========================")
-
 
 
 
