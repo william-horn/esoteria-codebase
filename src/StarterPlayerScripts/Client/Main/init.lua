@@ -1,8 +1,7 @@
 
 return function(import, _, pm)
-	print("started server")
 	local enums = game.ReplicatedStorage.Enums.Network
-	local network = pm.from(script).import("Network")
+	local network = pm.from(script).import("Network*")
 
 	network:init()
 	

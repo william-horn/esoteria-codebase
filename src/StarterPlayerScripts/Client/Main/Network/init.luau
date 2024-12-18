@@ -2,11 +2,7 @@
 	@author: William J. Horn
 	@written: 12/9/2024
 	
-	Client-side interface for sending requests over the network
-
-	TODO: Potential optimizations
-		? Reduce functions calls between network API and remote firing
-		? Pass arguments to dispatcher instead of creating a new table
+	Server-side interface for sending requests over the network
 ]]
 
 return function(import, global, pm) 
@@ -28,16 +24,19 @@ return function(import, global, pm)
 	Network.protocols = nil
 
 	local function handleRequest(remoteDispatcher)
-		local requests = remoteDispatcher.requests
+		local requests = remoteDispatcher.requestHandlers
 
 		return function(headers, payload)
 			local request = requests[headers.request]
 
+			-- ! error:
+			-- If the request is not recognized in the network, throw error
 			if (not request) then
-				warn("Network error: Could not interpret request \"" .. tostring(headers.request) .. "\" (channel \"" .. headers.channel.Name .. "\" does not have a listener for this request on the Client)")
+				error("Network error: Could not interpret request \"" .. tostring(headers.request) .. "\" (does not have a corresponding Enum)")
 				return
 			end
 
+			-- fire the server-side remote handler
 			request.process(headers, payload)
 		end
 	end
@@ -46,33 +45,48 @@ return function(import, global, pm)
 		local _dependencies = headers._dependencies
 		local _protocolType = headers._protocolType
 		local channel = headers.channel
-		local channels = self.protocols[_protocolType]
+		local request = headers.request
 
-		-- validate the header signatures
-		if (not channels) then
-			error("\"" .. tostring(_protocolType) .. "\" is not a valid network ProtocolType")
+		--[[
+			-----------------------------
+			| # Handling error checking |
+			-----------------------------
+		]]
+		if (not channel) then
+			error("Failed to dispatch remote ('channel' is a required header but was not found): ", headers)
 		end
-
-		local remoteDispatcher = channels[channel]
-
-		if (not remoteDispatcher) then
-			warn("\"" .. tostring(headers.channel) .. "\" is a valid Channel but is currently not being used on the Client")
-			return
-		end
-
-		local request = remoteDispatcher.requests[headers.request]
 
 		if (not request) then
-			warn("\"" .. tostring(headers.request) .. "\" is a valid Request but is currently not being used in channel \"" .. tostring(headers.channel) .. "\"")
+			error("Failed to dispatch remote ('request' is a required header but was not found): ", headers)
+		end
+
+		local channels = self.protocols[_protocolType]
+
+		if (not channels) then
+			error("Failed to dispatch remote (invalid ProtocolType. Got: \"" .. tostring(_protocolType) .. "\")")
+		end
+
+		local channelData = channels[channel]
+
+		if (not channelData) then
+			warn("Failed to dispatch remote (The channel \"" .. tostring(channel) .. "\" is valid, but does not exist in the shared network.)") 
 			return
 		end
-		
-		-- retrieve the previously sent network data for this signature
-		local cachedDispatch = request.cache
 
-		if (_dependencies and cachedDispatch) then
+		--[[
+			----------------------------------
+			| # Handling dependency checking |
+			----------------------------------
+		]]
+		local remoteDispatcher = channelData.dispatcher
+		local outgoingCache = channelData.outgoingCache
+
+		-- retrieve the previously sent network data for this signature
+		local lastDispatch = outgoingCache[request]
+
+		if (_dependencies and lastDispatch) then
 			-- cache ref variables
-			local cachedHeaders = cachedDispatch.headers
+			local cachedHeaders = lastDispatch.headers
 			local cachedDependencies = cachedHeaders._dependencies
 			-- print("reject dupe transmissions is: true")
 
@@ -96,24 +110,29 @@ return function(import, global, pm)
 			end
 
 		-- cache does not exist, create new cache
-		elseif (not cachedDispatch) then
-			cachedDispatch = {
-				headers = {}
-			}
-			request.cache = cachedDispatch
+		elseif (not lastDispatch) then
+			lastDispatch = { headers = {} }
+			outgoingCache[request] = lastDispatch
 			-- print("first time fire, creating cache.")
 
 		end
 
 		-- manually choose which headers and payload data to copy into the cache
-		-- print("updating cache. old: ", cachedDispatch)
-		-- cachedDispatch.headers = table.clone(headers) -- to copy all headers
-		cachedDispatch.payload = payload
-		cachedDispatch.headers._dependencies = _dependencies
-		-- print("updating cache. new: ", cachedDispatch)
+		-- print("updating cache. old: ", lastDispatch)
+		-- lastDispatch.headers = table.clone(headers) -- to copy all headers
+		lastDispatch.payload = payload
+		lastDispatch.headers._dependencies = _dependencies
+		-- print("updating cache. new: ", lastDispatch)
 
-		-- modify any final changes to headers before sending to server
-		headers._dependencies = nil
+		--[[
+			-----------------------------
+			| # Handling cache checking |
+			-----------------------------
+		]]
+		-- TODO: develop this more later. this may work differently between RemoteEvents and RemoteFunctions
+		if (headers._userCache) then
+			local incomingCache = channelData.incomingCache
+		end
 
 		-- remote validation
 		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
@@ -126,11 +145,12 @@ return function(import, global, pm)
 		headers = {
 			channel* = Channel
 			request* = Request
-			(x) _toPlayers = {}
-			(x) _allClients = true
+			_toPlayers = {}
+			_allClients = true
 			_dependencies = {}
 			_protocolType = ProtocolType
-			(x) _withValidation
+			_withValidation
+			_useCache = true
 		}
 	]]
 	function Network:sendTCP(headers, payload)
@@ -180,26 +200,29 @@ return function(import, global, pm)
 
 	function Network:listen()
 		for _, remoteDispatcher in next, RemoteDispatcher.instances do
-			local remoteInfo = remoteDispatcher.remoteInfo
-			local remote = remoteDispatcher.remote
+			if (remoteDispatcher:hasHandlers()) then
+				local remoteInfo = remoteDispatcher.remoteInfo
+				local remote = remoteDispatcher.remote
 
-			if (remoteInfo.connectionType == ConnectionType.Event) then
-				remote[remoteInfo.listener]:Connect(handleRequest(remoteDispatcher))
+				-- Listen to remote events/bindable events
+				if (remoteInfo.connectionType == ConnectionType.Event) then
+					remote[remoteInfo.listener]:Connect(handleRequest(remoteDispatcher))
 
-			elseif (remoteInfo.connectionType == ConnectionType.Callback) then
-				remote[remoteInfo.listener] = handleRequest(remoteDispatcher)
+				-- Listen to remote functions/bindable functions
+				elseif (remoteInfo.connectionType == ConnectionType.Callback) then
+					remote[remoteInfo.listener] = handleRequest(remoteDispatcher)
+				end
+			else
+				warn("Skipping listener for \"" .. remoteDispatcher.remote:GetFullName() .. "\" because it has no handlers on this machine")
 			end
 		end
 	end
 
 	function Network:init()
-		self.protocols = downloadNetwork(global.Network, RemoteDispatcher)
+		self.protocols = downloadNetwork(script.Protocols, RemoteDispatcher)
 		self:listen()
-
 		return self
 	end
 
-	return {
-		default = Network
-	}
+	return Network
 end

@@ -25,19 +25,20 @@ return function(import)
 			return
 		end
 
-		print("Firing client-side: ", headers, payload)
-
 		local dispatchSignal = self.remoteInfo.dispatch
 		self.remote[dispatchSignal](self.remote, headers, payload)
 	end
 
-	function RemoteDispatcher.new(channel, RBXRemote, requests, channelSettings)
+	function RemoteDispatcher:hasHandlers()
+		return next(self.requestHandlers) ~= nil
+	end
+
+	function RemoteDispatcher.new(RBXRemote, requestHandlers, channelSettings)
 		local r = setmetatable({}, RemoteDispatcher)
 
 		r.remote = RBXRemote
-		r.requests = requests
+		r.requestHandlers = requestHandlers
 		r.channelSettings = channelSettings
-		r.channel = channel
 		r.remoteInfo = getRemoteInfo(RBXRemote)
 
 		RemoteDispatcher.instances[#RemoteDispatcher.instances + 1] = r

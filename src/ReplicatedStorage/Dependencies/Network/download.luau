@@ -43,7 +43,7 @@ return function(import, global, pm)
 
 			-- Check for synchronization with source folder
 			if (not sourceChannelFolder) then
-				warn("Channels could not sync properly, missing channel \"" .. channelFolder.Name .. "\" in \"" .. channelFolder.Parent:GetFullName() .. "\"")
+				warn("Channels could not sync properly, missing channel \"" .. channelFolder.Name .. "\" in \"" .. tostring(channelFolder.Parent) .. "\" on the Server")
 			else
 				local requestHandlersFolder = sourceChannelFolder:FindFirstChild("Handlers")
 
@@ -67,7 +67,9 @@ return function(import, global, pm)
 	
 						-- add the required handler to the internal requests table in channel data
 						-- "true" argument to require without looking for a default export
-						requestHandlers[requestEnum] = pm.require(requestModule, true)
+						requestHandlers[requestEnum] = { 
+							process = pm.require(requestModule, true) 
+						}
 					end
 				end
 			end

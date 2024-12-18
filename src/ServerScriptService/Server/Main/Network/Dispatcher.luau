@@ -41,12 +41,15 @@ return function(import)
 			| # Final modifications to headers before sending over the network |
 			--------------------------------------------------------------------
 		]]
+		local dispatchSignal = self.remoteInfo.dispatch
+
 		if (headers._allClients) then
 			self.remote:FireAllClients(headers, payload)
 
-		else
-			local dispatchSignal = self.remoteInfo.dispatch
+		elseif (not headers._toPlayers) then
+			error("Remote \"" .. dispatchSignal .. "\" is missing header: '_toPlayer'")
 
+		else
 			for _, player in next, headers._toPlayers do
 				self.remote[dispatchSignal](self.remote, player, headers, payload)
 			end

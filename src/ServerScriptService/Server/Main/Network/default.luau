@@ -24,25 +24,10 @@ return function(import, global, pm)
 	Network.protocols = nil
 
 	local function handleRequest(remoteDispatcher)
-		local requests = remoteDispatcher.requests
-		local channel = remoteDispatcher.channel
+		local requests = remoteDispatcher.requestHandlers
 
 		return function(fromPlayer, headers, payload)
 			print("got signal from player: ", fromPlayer)
-			
-			-- if (headers.channel ~= channel) then
-			-- 	return
-			-- end
-
-			--[[
-				get the request:
-
-				(on the client-side)
-				request = {
-					process = handlerFunction(),
-					cache = { headers = lastUsedHeaders, payload = lastUsedPayload }
-				}
-			]]
 			local request = requests[headers.request]
 
 			-- ! error:
@@ -66,6 +51,11 @@ return function(import, global, pm)
 		local channel = headers.channel
 		local request = headers.request
 
+		--[[
+			-----------------------------
+			| # Handling error checking |
+			-----------------------------
+		]]
 		if (not channel) then
 			error("Failed to dispatch remote ('channel' is a required header but was not found): ", headers)
 		end
@@ -87,16 +77,20 @@ return function(import, global, pm)
 			return
 		end
 
-		local remoteDispatcher = channelData.remoteDispatcher
+		--[[
+			----------------------------------
+			| # Handling dependency checking |
+			----------------------------------
+		]]
+		local remoteDispatcher = channelData.dispatcher
 		local outgoingCache = channelData.outgoingCache
-		local incomingCache = channelData.incomingCache
 
 		-- retrieve the previously sent network data for this signature
-		local cachedDispatch = request.cache
+		local lastDispatch = outgoingCache[request]
 
-		if (_dependencies and cachedDispatch) then
+		if (_dependencies and lastDispatch) then
 			-- cache ref variables
-			local cachedHeaders = cachedDispatch.headers
+			local cachedHeaders = lastDispatch.headers
 			local cachedDependencies = cachedHeaders._dependencies
 			-- print("reject dupe transmissions is: true")
 
@@ -114,27 +108,35 @@ return function(import, global, pm)
 
 				-- if all dependencies are the same, then return out
 				if (sameValues) then
-					-- print("the tables are the same, returning...")
+					print("Dependencies are the same for request \"" .. tostring(request) .. "\", aborting dispatch...")
 					return
 				end 
 			end
 
 		-- cache does not exist, create new cache
-		elseif (not cachedDispatch) then
-			cachedDispatch = {
-				headers = {},
-			}
-			request.cache = cachedDispatch
+		elseif (not lastDispatch) then
+			lastDispatch = { headers = {} }
+			outgoingCache[request] = lastDispatch
 			-- print("first time fire, creating cache.")
 
 		end
 
 		-- manually choose which headers and payload data to copy into the cache
-		-- print("updating cache. old: ", cachedDispatch)
-		-- cachedDispatch.headers = table.clone(headers) -- to copy all headers
-		cachedDispatch.payload = payload
-		cachedDispatch.headers._dependencies = _dependencies
-		-- print("updating cache. new: ", cachedDispatch)
+		-- print("updating cache. old: ", lastDispatch)
+		-- lastDispatch.headers = table.clone(headers) -- to copy all headers
+		lastDispatch.payload = payload
+		lastDispatch.headers._dependencies = _dependencies
+		-- print("updating cache. new: ", lastDispatch)
+
+		--[[
+			-----------------------------
+			| # Handling cache checking |
+			-----------------------------
+		]]
+		-- TODO: develop this more later. this may work differently between RemoteEvents and RemoteFunctions
+		if (headers._userCache) then
+			local incomingCache = channelData.incomingCache
+		end
 
 		-- remote validation
 		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
@@ -152,6 +154,7 @@ return function(import, global, pm)
 			_dependencies = {}
 			_protocolType = ProtocolType
 			_withValidation
+			_useCache = true
 		}
 	]]
 	function Network:sendTCP(headers, payload)
