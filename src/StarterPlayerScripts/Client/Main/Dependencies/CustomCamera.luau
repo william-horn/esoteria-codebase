@@ -41,8 +41,8 @@ return function(import, global, pm)
 	local CAMERA_ZOOM_INDEX = 3 -- current percentage zoomed in (from 0 to 1, with 0 being CAMERA_ZOOM_MIN)
 	local CAMERA_ZOOM_SCROLLS = 10 -- 1/CAMERA_ZOOM_SCROLL increments
 
-	local targetFocusObject = props.getBall(workspace)
-	local originalTarget = props.getBall(workspace)
+	local targetFocusObject = props.createBall(workspace)
+	local originalTarget = props.createBall(workspace)
 	originalTarget.BrickColor = BrickColor.Red()
 
 
@@ -54,7 +54,7 @@ return function(import, global, pm)
 	CustomCamera._lastFocusPosition = Vector3.new()
 	CustomCamera._finalFocusPosition = Vector3.new()
 
-	--CustomCamera.cameraFocus = props.getBall(workspace.World)
+	--CustomCamera.cameraFocus = props.createBall(workspace.World)
 
 	-- override roblox's camera script which changes CameraType after this script loads
 	-- TODO: look into finding a better solution to this
@@ -78,10 +78,6 @@ return function(import, global, pm)
 	end
 
 	function CustomCamera:setMode(mode)
-		if (not CameraMode[mode]) then
-			error('Invalid CameraMode')
-		end
-
 		self.mode = mode
 	end
 
@@ -173,12 +169,12 @@ return function(import, global, pm)
 		if (CustomCamera.mode == CameraMode.Scriptable) then
 			return
 
-		elseif (CustomCamera.mode == CameraMode.PlayerCamera) then
+		elseif (CustomCamera.mode == CameraMode.TrackPlayerNormal) then
 			CustomCamera:playerCameraStep(step)
 		end
 	end
 
-	function CustomCamera:listen()
+	function CustomCamera:init()
 		UserInputHandler:bindMouseWheelForward({
 			handler = function()
 				CAMERA_ZOOM_INDEX = math.max(CAMERA_ZOOM_INDEX - 1, 0)

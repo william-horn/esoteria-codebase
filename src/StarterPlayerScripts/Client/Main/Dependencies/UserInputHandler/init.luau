@@ -117,7 +117,6 @@ return function(import, global, pm)
 
 	local function bindInputEvent(deviceType, input, state, connectOptions)
 		local event = getInputEvent(deviceType, input, state)
-
 		local connection = event:connect(connectOptions)
 		return event, connection 
 	end
@@ -286,7 +285,7 @@ return function(import, global, pm)
 	----------------------------------
 	--- Event listener connections ---
 	----------------------------------
-	function UserInput:listen()
+	function UserInput:init()
 		InputService.InputBegan:Connect(handleInputState)
 		InputService.InputEnded:Connect(handleInputState)
 		InputService.InputChanged:Connect(handleInputChanged)
