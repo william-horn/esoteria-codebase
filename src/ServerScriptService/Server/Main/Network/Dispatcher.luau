@@ -16,9 +16,11 @@ return function(import)
 	end
 
 	function RemoteDispatcher:fire(headers, payload)
-		print("Dispatching server-side: ", headers, payload)
-
-		-- ! REMOTE VALIDATION CHECK HERE
+		--[[
+			-------------------------------------
+			| # Remote validation before firing |
+			-------------------------------------
+		]]
 		-- validate remote call against `channelSettings` and possibly `headers`
 		local remoteValidation = self:validate()
 
@@ -27,25 +29,40 @@ return function(import)
 			return
 		end
 
-		local dispatchSignal = self.remoteInfo.dispatch
+		--[[
+			--------------------------------------------------------------------
+			| # Final modifications to headers before sending over the network |
+			--------------------------------------------------------------------
+		]]
+		headers._dependencies = nil
 
+		--[[
+			--------------------------------------------------------------------
+			| # Final modifications to headers before sending over the network |
+			--------------------------------------------------------------------
+		]]
 		if (headers._allClients) then
 			self.remote:FireAllClients(headers, payload)
+
 		else
+			local dispatchSignal = self.remoteInfo.dispatch
+
 			for _, player in next, headers._toPlayers do
-				print("fired remote to: ", player)
 				self.remote[dispatchSignal](self.remote, player, headers, payload)
 			end
 		end
 	end
 
-	function RemoteDispatcher.new(channel, RBXRemote, requests, channelSettings)
+	function RemoteDispatcher:hasHandlers()
+		return next(self.requestHandlers) ~= nil
+	end
+
+	function RemoteDispatcher.new(RBXRemote, requestHandlers, channelSettings)
 		local r = setmetatable({}, RemoteDispatcher)
 
 		r.remote = RBXRemote
-		r.requests = requests
+		r.requestHandlers = requestHandlers
 		r.channelSettings = channelSettings
-		r.channel = channel
 		r.remoteInfo = getRemoteInfo(RBXRemote)
 
 		RemoteDispatcher.instances[#RemoteDispatcher.instances + 1] = r

@@ -6,15 +6,16 @@ return function(import, _, pm)
 
 	network:init()
 	
-	network:sendTCP(
-		{
-			channel = enums.Channel.Player,
-			request = enums.Request.GetPlayer,
-			_dependencies = {"same"},
-		},
-		{
-			data = "FROM CLIENT"
-		}
-	)
+	-- network:sendTCP(
+	-- 	{
+	-- 		channel = enums.Channel.Common,
+	-- 		request = enums.Request.GetPlayer,
+	-- 		_dependencies = {"same"},
+	-- 	},
+	-- 	{
+	-- 		data = "FROM CLIENT"
+	-- 	}
+	-- )
+
 end
 

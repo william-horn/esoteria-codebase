@@ -34,7 +34,7 @@ return function(import, global, pm)
 			local request = requests[headers.request]
 
 			if (not request) then
-				error("Network error: Could not interpret request \"" .. tostring(headers.request) .. "\" (does not have a corresponding Enum)")
+				warn("Network error: Could not interpret request \"" .. tostring(headers.request) .. "\" (channel \"" .. headers.channel.Name .. "\" does not have a listener for this request on the Client)")
 				return
 			end
 
@@ -56,13 +56,15 @@ return function(import, global, pm)
 		local remoteDispatcher = channels[channel]
 
 		if (not remoteDispatcher) then
-			error("\"" .. tostring(headers.channel) .. "\" is not a valid Channel")
+			warn("\"" .. tostring(headers.channel) .. "\" is a valid Channel but is currently not being used on the Client")
+			return
 		end
 
 		local request = remoteDispatcher.requests[headers.request]
 
 		if (not request) then
-			error("\"" .. tostring(headers.channel) .. "\" is not a valid Request")
+			warn("\"" .. tostring(headers.request) .. "\" is a valid Request but is currently not being used in channel \"" .. tostring(headers.channel) .. "\"")
+			return
 		end
 		
 		-- retrieve the previously sent network data for this signature

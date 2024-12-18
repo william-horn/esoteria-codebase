@@ -19,6 +19,11 @@ return function(import)
 	local function getRemoteInfo(remote)
 		local remoteInfo = {}
 
+		if (not remote) then
+			remoteInfo.connectionType = connectionType.None
+			return remoteInfo
+		end
+
 		if (isRemoteEvent(remote)) then
 			remoteInfo.listener = isClient() and "OnClientEvent" or "OnServerEvent"
 			remoteInfo.dispatch = isClient() and "FireServer" or "FireClient"

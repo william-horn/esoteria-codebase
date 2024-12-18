@@ -4,7 +4,7 @@ return function(import, global, pm)
 	local enums = game.ReplicatedStorage.Enums.Network
 	local network = pm.from(script).import("Network")
 
-	print("Network: ", network)
+	print("Network 1: ", network)
 
 	local p = game.Players:WaitForChild("ScriptGuider")
 
@@ -12,37 +12,9 @@ return function(import, global, pm)
 
 	network:sendTCP(
 		{
-			channel = enums.Channel.Player,
+			channel = enums.Channel.Common,
 			request = enums.Request.GetPlayer,
 			_dependencies = {"same"},
-			_toPlayers = {p}
-		},
-		{
-			data = "test"
-		}
-	)
-
-	print("==========================")
-
-	network:sendTCP(
-		{
-			channel = enums.Channel.Player,
-			request = enums.Request.GetPlayer,
-			_dependencies = {"same0"},
-			_toPlayers = {p}
-		},
-		{
-			data = "test"
-		}
-	)
-
-	print("==========================")
-
-	network:sendTCP(
-		{
-			channel = enums.Channel.Player,
-			request = enums.Request.GetPlayer,
-			_dependencies = {"same0"},
 			_toPlayers = {p}
 		},
 		{

@@ -5,7 +5,7 @@
 	Server-side interface for sending requests over the network
 ]]
 
-return function(import, _, pm) 
+return function(import, global, pm) 
 	-- Enums
 	local Enums = game.ReplicatedStorage.Enums
 	local NetworkEnum = Enums.Network
@@ -64,25 +64,33 @@ return function(import, _, pm)
 		local _dependencies = headers._dependencies
 		local _protocolType = headers._protocolType
 		local channel = headers.channel
-		local channels = self.protocols[_protocolType]
+		local request = headers.request
 
-		-- validate the header signatures
-		if (not channels) then
-			error("\"" .. tostring(_protocolType) .. "\" is not a valid network ProtocolType")
+		if (not channel) then
+			error("Failed to dispatch remote ('channel' is a required header but was not found): ", headers)
 		end
-
-		local remoteDispatcher = channels[channel]
-
-		if (not remoteDispatcher) then
-			error("\"" .. tostring(headers.channel) .. "\" is not a valid Channel")
-		end
-
-		local request = remoteDispatcher.requests[headers.request]
 
 		if (not request) then
-			error("\"" .. tostring(headers.channel) .. "\" is not a valid Request")
+			error("Failed to dispatch remote ('request' is a required header but was not found): ", headers)
 		end
-		
+
+		local channels = self.protocols[_protocolType]
+
+		if (not channels) then
+			error("Failed to dispatch remote (invalid ProtocolType. Got: \"" .. tostring(_protocolType) .. "\")")
+		end
+
+		local channelData = channels[channel]
+
+		if (not channelData) then
+			warn("Failed to dispatch remote (The channel \"" .. tostring(channel) .. "\" is valid, but does not exist in the shared network.)") 
+			return
+		end
+
+		local remoteDispatcher = channelData.remoteDispatcher
+		local outgoingCache = channelData.outgoingCache
+		local incomingCache = channelData.incomingCache
+
 		-- retrieve the previously sent network data for this signature
 		local cachedDispatch = request.cache
 
@@ -128,9 +136,6 @@ return function(import, _, pm)
 		cachedDispatch.headers._dependencies = _dependencies
 		-- print("updating cache. new: ", cachedDispatch)
 
-		-- modify any final changes to headers
-		headers._dependencies = nil
-
 		-- remote validation
 		return remoteDispatcher:fire(headers, payload) -- should return remote validation status
 	end
@@ -142,12 +147,11 @@ return function(import, _, pm)
 		headers = {
 			channel* = Channel
 			request* = Request
-			(x) _toPlayers = {}
-			(x) _allClients = true
-			(x) _fromMachine
+			_toPlayers = {}
+			_allClients = true
 			_dependencies = {}
 			_protocolType = ProtocolType
-			(x) _withValidation
+			_withValidation
 		}
 	]]
 	function Network:sendTCP(headers, payload)
@@ -197,16 +201,20 @@ return function(import, _, pm)
 
 	function Network:listen()
 		for _, remoteDispatcher in next, RemoteDispatcher.instances do
-			local remoteInfo = remoteDispatcher.remoteInfo
-			local remote = remoteDispatcher.remote
+			if (remoteDispatcher:hasHandlers()) then
+				local remoteInfo = remoteDispatcher.remoteInfo
+				local remote = remoteDispatcher.remote
 
-			-- Listen to remote events/bindable events
-			if (remoteInfo.connectionType == ConnectionType.Event) then
-				remote[remoteInfo.listener]:Connect(handleRequest(remoteDispatcher))
+				-- Listen to remote events/bindable events
+				if (remoteInfo.connectionType == ConnectionType.Event) then
+					remote[remoteInfo.listener]:Connect(handleRequest(remoteDispatcher))
 
-			-- Listen to remote functions/bindable functions
-			elseif (remoteInfo.connectionType == ConnectionType.Callback) then
-				remote[remoteInfo.listener] = handleRequest(remoteDispatcher)
+				-- Listen to remote functions/bindable functions
+				elseif (remoteInfo.connectionType == ConnectionType.Callback) then
+					remote[remoteInfo.listener] = handleRequest(remoteDispatcher)
+				end
+			else
+				warn("Skipping listener for \"" .. remoteDispatcher.remote:GetFullName() .. "\" because it has no handlers on this machine")
 			end
 		end
 	end
