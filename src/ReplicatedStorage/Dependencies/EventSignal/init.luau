@@ -29,7 +29,7 @@ return function(import, global, pm)
 	local UUID = import("@Util/uuid")
 	local CustomType = Enums.CustomType
 
-	local DispatchStatusType = Enums.DispatchStatusType
+	local DispatchStatusType = Enums.EventSignal.DispatchStatusType
 	local EventValidationStatus = Enums.EventSignal.EventValidationStatus
 	local EventStateType = Enums.EventSignal.EventStateType
 
@@ -137,7 +137,7 @@ return function(import, global, pm)
 		end
 
 		-- event dispatch validation
-		if (self.isDisabled()) then
+		if (self:isDisabled()) then
 			report:addReason(DispatchStatusType.Disabled)
 		end
 

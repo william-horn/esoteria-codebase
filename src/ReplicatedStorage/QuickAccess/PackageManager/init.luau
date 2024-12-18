@@ -21,6 +21,7 @@
 ---- ROBLOX SERVICES ---- 
 -------------------------
 
+local DataStoreService = game:GetService("DataStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- local ServerScriptService = game:GetService("ServerScriptService")
 
@@ -61,6 +62,8 @@ PackageManager.global = {
 	ReplicatedStorage = ReplicatedStorage,
 	Players = game:GetService("Players"),
 	RunService = game:GetService("RunService"),
+	ServerScripts = game:GetService("ServerScriptService"),
+	DataStoreService = game:GetService("DataStoreService"),
 }
 
 local cachedImportPaths = {}

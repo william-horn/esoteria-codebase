@@ -125,13 +125,13 @@ return function(import, global, pm)
 
 		-- fire end of dispatch callbacks. these will run before the dispatch handlers
 		if eventValidationReport.result == EventValidationStatus.Successful then
-			event.executeDispatchSuccess(eventValidationReport.reasons, event)
+			event:executeDispatchSuccess(eventValidationReport.reasons, event)
 			analytics.dispatches.successful += 1
 
 			executeEvent()
 
 		elseif eventValidationReport.result == EventValidationStatus.Rejected then
-			event.executeDispatchFailed(eventValidationReport.reasons, event)
+			event:executeDispatchFailed(eventValidationReport.reasons, event)
 		end
 
 		return eventValidationReport
